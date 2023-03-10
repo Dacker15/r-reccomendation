@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Reccomendation systems in R"
 output: html_notebook
 ---
 
@@ -7,8 +7,21 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
+Carichiamo il dataset dei film all'interno del progetto:
+
 ```{r}
-plot(cars)
+movie_dataset = read.csv('movie-dataset/movies.csv',  sep = ',')
+rating_dataset = read.csv('movie-dataset/ratings.csv', sep = ',')
+```
+
+Puliamo i dati e verifichiamo l'assenza di valori nulli:
+
+```{r}
+```
+
+Elaboriamo i dati per ricavare gli utenti dal dataset delle valutazioni:
+
+```{r}
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
