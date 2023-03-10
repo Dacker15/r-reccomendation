@@ -1758,26 +1758,44 @@ beneath the code.</p>
 <p>Try executing this chunk by clicking the <em>Run</em> button within
 the chunk or by placing your cursor inside it and pressing
 <em>Ctrl+Shift+Enter</em>.</p>
-<p>Carichiamo il dataset dei film all’interno del progetto:</p>
+<p>Carichiamo il dataset del sistema di raccomandazione all’interno del
+progetto:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubW92aWVfZGF0YXNldCA9IHJlYWQuY3N2KCdtb3ZpZS1kYXRhc2V0L21vdmllcy5jc3YnLCAgc2VwID0gJywnKVxucmF0aW5nX2RhdGFzZXQgPSByZWFkLmNzdignbW92aWUtZGF0YXNldC9yYXRpbmdzLmNzdicsIHNlcCA9ICcsJylcbmBgYCJ9 -->
-<pre class="r"><code>movie_dataset = read.csv(&#39;movie-dataset/movies.csv&#39;,  sep = &#39;,&#39;)
-rating_dataset = read.csv(&#39;movie-dataset/ratings.csv&#39;, sep = &#39;,&#39;)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubW92aWVfZGF0YXNldCA8LSByZWFkLmNzdignbW92aWUtZGF0YXNldC9tb3ZpZXMuY3N2JywgIHNlcCA9ICcsJylcbnJhdGluZ19kYXRhc2V0IDwtIHJlYWQuY3N2KCdtb3ZpZS1kYXRhc2V0L3JhdGluZ3MuY3N2Jywgc2VwID0gJywnKVxuYGBgIn0= -->
+<pre class="r"><code>movie_dataset &lt;- read.csv(&#39;movie-dataset/movies.csv&#39;,  sep = &#39;,&#39;)
+rating_dataset &lt;- read.csv(&#39;movie-dataset/ratings.csv&#39;, sep = &#39;,&#39;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Puliamo i dati e verifichiamo l’assenza di valori nulli:</p>
+<p>Una volta caricati i dati, verifichiamone
+l’<strong>integrità</strong>.<br />
+La presenza di dati incompleti influisce negativamente sui risultati
+dell’analisi, rischiando l’alterazione del risultato finale.<br />
+Effettuiamo quindi una pulizia sui dati:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubW92aWVfZGF0YXNldCA8LSBtb3ZpZV9kYXRhc2V0W2NvbXBsZXRlLmNhc2VzKG1vdmllX2RhdGFzZXQpLCBdXG5yYXRpbmdfZGF0YXNldCA8LSByYXRpbmdfZGF0YXNldFtjb21wbGV0ZS5jYXNlcyhyYXRpbmdfZGF0YXNldCksIF1cbmBgYCJ9 -->
+<pre class="r"><code>movie_dataset &lt;- movie_dataset[complete.cases(movie_dataset), ]
+rating_dataset &lt;- rating_dataset[complete.cases(rating_dataset), ]</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Elaboriamo i dati per ricavare gli utenti dal dataset delle
-valutazioni:</p>
+<p>Il data frame <code>ratings</code> contiene una colonna molto
+importante, chiamata <code>userId</code>.<br />
+La colonna relativa agli utenti è uno dei due fattore che ci serve per
+generare la matrice di utilità in un sistema di raccomandazione.<br />
+Elaboriamo i dati per estrarre gli utenti dal data frame:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudXNlcnNfZGF0YXNldCA9IHVuaXF1ZShyYXRpbmdfZGF0YXNldFssIDFdKVxuYGBgIn0= -->
+<pre class="r"><code>users_dataset = unique(rating_dataset[, 1])</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>Vedi altre risorse: - <a href="https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/">Reccomendation
+101</a> - <a href="https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/">Data
+Mania</a></p>
 <p>Add a new chunk by clicking the <em>Insert Chunk</em> button on the
 toolbar or by pressing <em>Ctrl+Alt+I</em>.</p>
 <p>When you save the notebook, an HTML file containing the code and
@@ -1789,7 +1807,7 @@ run any R code chunks. Instead, the output of the chunk when it was last
 run in the editor is displayed.</p>
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIlJlY2NvbWVuZGF0aW9uIHN5c3RlbXMgaW4gUiINCm91dHB1dDogaHRtbF9ub3RlYm9vaw0KLS0tDQoNClRoaXMgaXMgYW4gW1IgTWFya2Rvd25dKGh0dHA6Ly9ybWFya2Rvd24ucnN0dWRpby5jb20pIE5vdGVib29rLiBXaGVuIHlvdSBleGVjdXRlIGNvZGUgd2l0aGluIHRoZSBub3RlYm9vaywgdGhlIHJlc3VsdHMgYXBwZWFyIGJlbmVhdGggdGhlIGNvZGUuIA0KDQpUcnkgZXhlY3V0aW5nIHRoaXMgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpSdW4qIGJ1dHRvbiB3aXRoaW4gdGhlIGNodW5rIG9yIGJ5IHBsYWNpbmcgeW91ciBjdXJzb3IgaW5zaWRlIGl0IGFuZCBwcmVzc2luZyAqQ3RybCtTaGlmdCtFbnRlciouIA0KDQpDYXJpY2hpYW1vIGlsIGRhdGFzZXQgZGVpIGZpbG0gYWxsJ2ludGVybm8gZGVsIHByb2dldHRvOg0KDQpgYGB7cn0NCm1vdmllX2RhdGFzZXQgPSByZWFkLmNzdignbW92aWUtZGF0YXNldC9tb3ZpZXMuY3N2JywgIHNlcCA9ICcsJykNCnJhdGluZ19kYXRhc2V0ID0gcmVhZC5jc3YoJ21vdmllLWRhdGFzZXQvcmF0aW5ncy5jc3YnLCBzZXAgPSAnLCcpDQpgYGANCg0KUHVsaWFtbyBpIGRhdGkgZSB2ZXJpZmljaGlhbW8gbCdhc3NlbnphIGRpIHZhbG9yaSBudWxsaToNCg0KYGBge3J9DQpgYGANCg0KRWxhYm9yaWFtbyBpIGRhdGkgcGVyIHJpY2F2YXJlIGdsaSB1dGVudGkgZGFsIGRhdGFzZXQgZGVsbGUgdmFsdXRhemlvbmk6DQoNCmBgYHtyfQ0KYGBgDQoNCkFkZCBhIG5ldyBjaHVuayBieSBjbGlja2luZyB0aGUgKkluc2VydCBDaHVuayogYnV0dG9uIG9uIHRoZSB0b29sYmFyIG9yIGJ5IHByZXNzaW5nICpDdHJsK0FsdCtJKi4NCg0KV2hlbiB5b3Ugc2F2ZSB0aGUgbm90ZWJvb2ssIGFuIEhUTUwgZmlsZSBjb250YWluaW5nIHRoZSBjb2RlIGFuZCBvdXRwdXQgd2lsbCBiZSBzYXZlZCBhbG9uZ3NpZGUgaXQgKGNsaWNrIHRoZSAqUHJldmlldyogYnV0dG9uIG9yIHByZXNzICpDdHJsK1NoaWZ0K0sqIHRvIHByZXZpZXcgdGhlIEhUTUwgZmlsZSkuDQoNClRoZSBwcmV2aWV3IHNob3dzIHlvdSBhIHJlbmRlcmVkIEhUTUwgY29weSBvZiB0aGUgY29udGVudHMgb2YgdGhlIGVkaXRvci4gQ29uc2VxdWVudGx5LCB1bmxpa2UgKktuaXQqLCAqUHJldmlldyogZG9lcyBub3QgcnVuIGFueSBSIGNvZGUgY2h1bmtzLiBJbnN0ZWFkLCB0aGUgb3V0cHV0IG9mIHRoZSBjaHVuayB3aGVuIGl0IHdhcyBsYXN0IHJ1biBpbiB0aGUgZWRpdG9yIGlzIGRpc3BsYXllZC4NCg==</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlJlY2NvbWVuZGF0aW9uIHN5c3RlbXMgaW4gUiINCm91dHB1dDogaHRtbF9ub3RlYm9vaw0KLS0tDQoNClRoaXMgaXMgYW4gW1IgTWFya2Rvd25dKGh0dHA6Ly9ybWFya2Rvd24ucnN0dWRpby5jb20pIE5vdGVib29rLiBXaGVuIHlvdSBleGVjdXRlIGNvZGUgd2l0aGluIHRoZSBub3RlYm9vaywgdGhlIHJlc3VsdHMgYXBwZWFyIGJlbmVhdGggdGhlIGNvZGUuIA0KDQpUcnkgZXhlY3V0aW5nIHRoaXMgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpSdW4qIGJ1dHRvbiB3aXRoaW4gdGhlIGNodW5rIG9yIGJ5IHBsYWNpbmcgeW91ciBjdXJzb3IgaW5zaWRlIGl0IGFuZCBwcmVzc2luZyAqQ3RybCtTaGlmdCtFbnRlciouIA0KDQpDYXJpY2hpYW1vIGlsIGRhdGFzZXQgZGVsIHNpc3RlbWEgZGkgcmFjY29tYW5kYXppb25lIGFsbCdpbnRlcm5vIGRlbCBwcm9nZXR0bzoNCmBgYHtyfQ0KbW92aWVfZGF0YXNldCA8LSByZWFkLmNzdignbW92aWUtZGF0YXNldC9tb3ZpZXMuY3N2JywgIHNlcCA9ICcsJykNCnJhdGluZ19kYXRhc2V0IDwtIHJlYWQuY3N2KCdtb3ZpZS1kYXRhc2V0L3JhdGluZ3MuY3N2Jywgc2VwID0gJywnKQ0KYGBgDQoNClVuYSB2b2x0YSBjYXJpY2F0aSBpIGRhdGksIHZlcmlmaWNoaWFtb25lIGwnKippbnRlZ3JpdMOgKiouICANCkxhIHByZXNlbnphIGRpIGRhdGkgaW5jb21wbGV0aSBpbmZsdWlzY2UgbmVnYXRpdmFtZW50ZSBzdWkgcmlzdWx0YXRpIGRlbGwnYW5hbGlzaSwgcmlzY2hpYW5kbyBsJ2FsdGVyYXppb25lIGRlbCByaXN1bHRhdG8gZmluYWxlLiAgDQpFZmZldHR1aWFtbyBxdWluZGkgdW5hIHB1bGl6aWEgc3VpIGRhdGk6ICANCmBgYHtyfQ0KbW92aWVfZGF0YXNldCA8LSBtb3ZpZV9kYXRhc2V0W2NvbXBsZXRlLmNhc2VzKG1vdmllX2RhdGFzZXQpLCBdDQpyYXRpbmdfZGF0YXNldCA8LSByYXRpbmdfZGF0YXNldFtjb21wbGV0ZS5jYXNlcyhyYXRpbmdfZGF0YXNldCksIF0NCmBgYA0KDQpJbCBkYXRhIGZyYW1lIGByYXRpbmdzYCBjb250aWVuZSB1bmEgY29sb25uYSBtb2x0byBpbXBvcnRhbnRlLCBjaGlhbWF0YSBgdXNlcklkYC4gIA0KTGEgY29sb25uYSByZWxhdGl2YSBhZ2xpIHV0ZW50aSDDqCB1bm8gZGVpIGR1ZSBmYXR0b3JlIGNoZSBjaSBzZXJ2ZSBwZXIgZ2VuZXJhcmUgbGEgbWF0cmljZSBkaSB1dGlsaXTDoCBpbiB1biBzaXN0ZW1hIGRpIHJhY2NvbWFuZGF6aW9uZS4gIA0KRWxhYm9yaWFtbyBpIGRhdGkgcGVyIGVzdHJhcnJlIGdsaSB1dGVudGkgZGFsIGRhdGEgZnJhbWU6DQpgYGB7cn0NCnVzZXJzX2RhdGFzZXQgPSB1bmlxdWUocmF0aW5nX2RhdGFzZXRbLCAxXSkNCmBgYA0KDQpWZWRpIGFsdHJlIHJpc29yc2U6DQotIFtSZWNjb21lbmRhdGlvbiAxMDFdKGh0dHBzOi8vd3d3LnItYmxvZ2dlcnMuY29tLzIwMTQvMTIvcmVjb21tZW5kZXItc3lzdGVtcy0xMDEtYS1zdGVwLWJ5LXN0ZXAtcHJhY3RpY2FsLWV4YW1wbGUtaW4tci8pDQotIFtEYXRhIE1hbmlhXShodHRwczovL3d3dy5kYXRhLW1hbmlhLmNvbS9ibG9nL2hvdy10by1idWlsZC1hLXJlY29tbWVuZGF0aW9uLWVuZ2luZS1pbi1yLykNCg0KQWRkIGEgbmV3IGNodW5rIGJ5IGNsaWNraW5nIHRoZSAqSW5zZXJ0IENodW5rKiBidXR0b24gb24gdGhlIHRvb2xiYXIgb3IgYnkgcHJlc3NpbmcgKkN0cmwrQWx0K0kqLg0KDQpXaGVuIHlvdSBzYXZlIHRoZSBub3RlYm9vaywgYW4gSFRNTCBmaWxlIGNvbnRhaW5pbmcgdGhlIGNvZGUgYW5kIG91dHB1dCB3aWxsIGJlIHNhdmVkIGFsb25nc2lkZSBpdCAoY2xpY2sgdGhlICpQcmV2aWV3KiBidXR0b24gb3IgcHJlc3MgKkN0cmwrU2hpZnQrSyogdG8gcHJldmlldyB0aGUgSFRNTCBmaWxlKS4NCg0KVGhlIHByZXZpZXcgc2hvd3MgeW91IGEgcmVuZGVyZWQgSFRNTCBjb3B5IG9mIHRoZSBjb250ZW50cyBvZiB0aGUgZWRpdG9yLiBDb25zZXF1ZW50bHksIHVubGlrZSAqS25pdCosICpQcmV2aWV3KiBkb2VzIG5vdCBydW4gYW55IFIgY29kZSBjaHVua3MuIEluc3RlYWQsIHRoZSBvdXRwdXQgb2YgdGhlIGNodW5rIHdoZW4gaXQgd2FzIGxhc3QgcnVuIGluIHRoZSBlZGl0b3IgaXMgZGlzcGxheWVkLg0K</div>
 
 
 

@@ -7,22 +7,30 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
-Carichiamo il dataset dei film all'interno del progetto:
-
+Carichiamo il dataset del sistema di raccomandazione all'interno del progetto:
 ```{r}
-movie_dataset = read.csv('movie-dataset/movies.csv',  sep = ',')
-rating_dataset = read.csv('movie-dataset/ratings.csv', sep = ',')
+movie_dataset <- read.csv('movie-dataset/movies.csv',  sep = ',')
+rating_dataset <- read.csv('movie-dataset/ratings.csv', sep = ',')
 ```
 
-Puliamo i dati e verifichiamo l'assenza di valori nulli:
-
+Una volta caricati i dati, verifichiamone l'**integrità**.  
+La presenza di dati incompleti influisce negativamente sui risultati dell'analisi, rischiando l'alterazione del risultato finale.  
+Effettuiamo quindi una pulizia sui dati:  
 ```{r}
+movie_dataset <- movie_dataset[complete.cases(movie_dataset), ]
+rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
 ```
 
-Elaboriamo i dati per ricavare gli utenti dal dataset delle valutazioni:
-
+Il data frame `ratings` contiene una colonna molto importante, chiamata `userId`.  
+La colonna relativa agli utenti è uno dei due fattore che ci serve per generare la matrice di utilità in un sistema di raccomandazione.  
+Elaboriamo i dati per estrarre gli utenti dal data frame:
 ```{r}
+users_dataset = unique(rating_dataset[, 1])
 ```
+
+Vedi altre risorse:
+- [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)
+- [Data Mania](https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/)
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
