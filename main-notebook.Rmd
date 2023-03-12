@@ -1,21 +1,38 @@
 ---
-title: "Reccomendation systems in R"
+title: "Sistemi di raccomandazione in R"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+### Introduzione
+I **sistemi di raccomandazione** sono dei sistemi software che permettono di predire le preferenze di un utente basandoci sulle preferenze espresse dall'utente in passato.  
+A differenza dei sistemi tradizionali, essi possono predirre il gradimento dell'utente anche per oggetti rari, evitando il cosidetto fenomeno **long-tail**.  
+Un sistema di raccomandazione è strutturato in una matrice chiamata **matrice di utilità**, avente:  
+- nelle righe, gli utenti del sistema.  
+- nelle colonne, gli oggetti da valutare.  
+- nelle celle, la valutazione dell'oggetto nella colonna `j` relativa all'utente nella riga `i`.  
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+I sistemi di raccomandazione possono diversi in due categorie:  
+-  **content-based**: ad ogni utente è associato un profilo che verrà utilizzato per effettuare le predizioni sugli item.  
+- **collaborative-filtering**: le predizioni sugli item vengono fatte basandoci su utenti simili (nel caso di **user-based** collaborative filtering) oppure su item simili (nel caso di **item-based** collaborative filtering).  
 
-Carichiamo il dataset del sistema di raccomandazione all'interno del progetto:
+### Obbiettivo
+Creeremo diversi sistemi di raccomandazione e ne confronteremo le prestazioni. Useremo anche un sistema personalizzato che tenga in considerazione delle data in cui è stata lasciata la valutazione.  
+Useremo questo [dataset](https://www.kaggle.com/datasets/sumitgaidhani/movie-reccomendations) per generare i sistemi. Al suo interno sono presenti due tabelle `.csv`:  
+- `movies.csv`: contiene l'elenco dei film, con i campi `movieId`, `title` e `genres`.  
+- `ratings.csv`: contiene l'elenco delle valutazione relative agli utenti, con i campi `userId`, `movieId`, `rating`, `timestamp`.  
+
+Carichiamo i dataset all'interno del progetto usando la funzione `read.csv`:
 ```{r}
-movie_dataset <- read.csv('movie-dataset/movies.csv',  sep = ',')
-rating_dataset <- read.csv('movie-dataset/ratings.csv', sep = ',')
+movie_dataset <- read.csv("movie-dataset/movies.csv",  sep = ",")
+rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = ",")
 ```
 
 Una volta caricati i dati, verifichiamone l'**integrità**.  
-La presenza di dati incompleti influisce negativamente sui risultati dell'analisi, rischiando l'alterazione del risultato finale.  
-Effettuiamo quindi una pulizia sui dati:  
+La presenza di dati incompleti, come i valori `NA`, influisce negativamente sui risultati dell'analisi, rischiando l'alterazione del risultato finale.  
+All'interno di R è presente la funzione `complete.cases` che restituisce una matrice di valori booleani con:  
+- TRUE, nel caso in cui i dati sono completi.  
+- FALSE, nel caso in cui i dati sono incompleti.  
+Questa funzione può essere usata per effettuare una **pulizia** sui dati:  
 ```{r}
 movie_dataset <- movie_dataset[complete.cases(movie_dataset), ]
 rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
@@ -36,12 +53,16 @@ Instanziamo quindi il nostro sistema di raccomandazione, usando `reccomendlab` e
 library("recommenderlab")
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
 normalized_matrix <- normalize(rating_matrix)
+# normalized_matrix <- rating_matrix
 ```
 
 Addestramento del sistema, split dei dati:
 ```{r}
 library("recommenderlab")
-splitted_matrix <- evaluationScheme(normalized_matrix, method="split", train=0.9, given=15)
+min_count = min(rowCounts(normalized_matrix))
+splitted_matrix <- evaluationScheme(normalized_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
+
+print(min_count)
 ```
 
 Aggiungere validazione:
