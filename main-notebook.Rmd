@@ -21,12 +21,23 @@ movie_dataset <- movie_dataset[complete.cases(movie_dataset), ]
 rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
 ```
 
-Il data frame `ratings` contiene una colonna molto importante, chiamata `userId`.  
-La colonna relativa agli utenti è uno dei due fattore che ci serve per generare la matrice di utilità in un sistema di raccomandazione.  
-Elaboriamo i dati per estrarre gli utenti dal data frame:
+Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della matrice di utilità.  
+Essendo il nostro dataset organizzato per righe, è necessario effettuare una conversione.  
+Utilizziamo il pacchetto [reshape2](https://cran.r-project.org/web/packages/reshape2/index.html), in particolare la funzione `dcast`.  
+Questa funzione, ricevendo in input la matrice, la formula per creare righe / colonne e il valore da inserire nelle celle, ci restituisce una matrice.  
+Utilizziamola nel nostro caso:
 ```{r}
-users_dataset = unique(rating_dataset[, 1])
+library("reshape2")
+converted_matrix = dcast(rating_dataset, userId~movieId, value.var = "rating", na.rm=FALSE)
 ```
+
+Instanziamo quindi il nostro sistema di raccomandazione, usando `reccomendlab` e normalizziamo:
+```{r}
+library("recommenderlab")
+rating_matrix <- as(converted_matrix, "realRatingMatrix")
+normalized_matrix <- normalize(rating_matrix)
+```
+
 
 Vedi altre risorse:
 - [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)
