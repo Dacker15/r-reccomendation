@@ -44,9 +44,22 @@ library("recommenderlab")
 splitted_matrix <- evaluationScheme(normalized_matrix, method="split", train=0.9, given=15)
 ```
 
-Vedi altre risorse:
-- [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)
-- [Data Mania](https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/)
+Aggiungere validazione:
+```{r}
+library("recommenderlab")
+ubcf_model <- Recommender(getData(splitted_matrix, "train"), "UBCF")
+ubcf_test <- predict(ubcf_model, getData(splitted_matrix, "known"), type="ratings")
+ubcf_error <- calcPredictionAccuracy(ubcf_test, getData(splitted_matrix, "unknown"))
+
+print(ubcf_error)
+```
+
+Vedi altre risorse:  
+- [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)  
+- [Data Mania](https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/)  
+- [Res 1](https://rpubs.com/robertwsellers/IS643_Project_2)   
+- [Res 2](https://rpubs.com/dhairavc/628480)  
+- [Res 3](https://www.linkedin.com/pulse/create-recommendation-engine-using-r-simple-steps-minta-thomas/)  
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
