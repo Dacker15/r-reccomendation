@@ -28,7 +28,7 @@ Questa funzione, ricevendo in input la matrice, la formula per creare righe / co
 Utilizziamola nel nostro caso:
 ```{r}
 library("reshape2")
-converted_matrix = dcast(rating_dataset, userId~movieId, value.var = "rating", na.rm=FALSE)
+converted_matrix <- acast(rating_dataset, userId~movieId, value.var = "rating")
 ```
 
 Instanziamo quindi il nostro sistema di raccomandazione, usando `reccomendlab` e normalizziamo:
@@ -38,6 +38,11 @@ rating_matrix <- as(converted_matrix, "realRatingMatrix")
 normalized_matrix <- normalize(rating_matrix)
 ```
 
+Addestramento del sistema, split dei dati:
+```{r}
+library("recommenderlab")
+splitted_matrix <- evaluationScheme(normalized_matrix, method="split", train=0.9, given=15)
+```
 
 Vedi altre risorse:
 - [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)
