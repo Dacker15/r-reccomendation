@@ -52,15 +52,14 @@ Instanziamo quindi il nostro sistema di raccomandazione, usando `reccomendlab` e
 ```{r}
 library("recommenderlab")
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
-normalized_matrix <- normalize(rating_matrix)
-# normalized_matrix <- rating_matrix
+rating_matrix <- normalize(rating_matrix)
 ```
 
 Addestramento del sistema, split dei dati:
 ```{r}
 library("recommenderlab")
-min_count = min(rowCounts(normalized_matrix))
-splitted_matrix <- evaluationScheme(normalized_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
+min_count = min(rowCounts(rating_matrix))
+splitted_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
 
 print(min_count)
 ```
@@ -73,6 +72,14 @@ ubcf_test <- predict(ubcf_model, getData(splitted_matrix, "known"), type="rating
 ubcf_error <- calcPredictionAccuracy(ubcf_test, getData(splitted_matrix, "unknown"))
 
 print(ubcf_error)
+```
+```{r}
+library("recommenderlab")
+ibcf_model <- Recommender(getData(splitted_matrix, "train"), "IBCF")
+ibcf_test <- predict(ibcf_model, getData(splitted_matrix, "known"), type="ratings")
+ibcf_error <- calcPredictionAccuracy(ibcf_test, getData(splitted_matrix, "unknown"))
+
+print(ibcf_error)
 ```
 
 Vedi altre risorse:  
