@@ -17,18 +17,36 @@ I sistemi di raccomandazione possono diversi in due categorie:
 
 ### Obbiettivo
 Creeremo diversi sistemi di raccomandazione e ne confronteremo le prestazioni. Useremo anche un sistema personalizzato che tenga in considerazione delle data in cui è stata lasciata la valutazione.  
-Useremo questo [dataset](https://www.kaggle.com/datasets/sumitgaidhani/movie-reccomendations) per generare i sistemi. Al suo interno sono presenti due tabelle `.csv`:  
+Useremo questo [dataset](https://grouplens.org/datasets/movielens/latest/) per generare i sistemi. Al suo interno sono presenti due tabelle `.csv`:  
 - `movies.csv`: contiene l'elenco dei film, con i campi `movieId`, `title` e `genres`.  
 - `ratings.csv`: contiene l'elenco delle valutazione relative agli utenti, con i campi `userId`, `movieId`, `rating`, `timestamp`.  
 
-Carichiamo i dataset all'interno del progetto usando la funzione `read.csv`:
+### Preparazione dell'ambiente
+All'interno del nostro progetto, useremo diverse librerie:  
+- [`reshape2`](https://cran.r-project.org/web/packages/reshape2/index.html), permette di creare un data frame oppure una matrice partendo da una lista.  
+- [`reccomenderlab`](https://cran.r-project.org/web/packages/recommenderlab/index.html), permette la creazione e la valutazione dei sistemi di raccomandazione.  
+
+Installiamo quindi i pacchetti necessari per il funzionamento:
+```{r}
+install.packages("reshape2")
+install.packages("recommenderlab")
+```
+ed importiamolo nel progetto:
+```{r}
+library("reshape2")
+library("recommenderlab")
+```
+Adesso, carichiamo i dataset all'interno del progetto usando la funzione `read.csv`:
 ```{r}
 movie_dataset <- read.csv("movie-dataset/movies.csv",  sep = ",")
 rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = ",")
 ```
 
+### Caricamento del dataset
+
 Una volta caricati i dati, verifichiamone l'**integrità**.  
-La presenza di dati incompleti, come i valori `NA`, influisce negativamente sui risultati dell'analisi, rischiando l'alterazione del risultato finale.  
+L'integrità dei dati è essenziale per garantire l'affidabilità dei risultati dell'analisi.  
+La presenza di dati incompleti, come i valori `NA`, potrebbero influenzare la validità dei risultati dell'analisi.  
 All'interno di R è presente la funzione `complete.cases` che restituisce una matrice di valori booleani con:  
 - TRUE, nel caso in cui i dati sono completi.  
 - FALSE, nel caso in cui i dati sono incompleti.  
@@ -40,28 +58,23 @@ rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
 
 Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della matrice di utilità.  
 Essendo il nostro dataset organizzato per righe, è necessario effettuare una conversione.  
-Utilizziamo il pacchetto [reshape2](https://cran.r-project.org/web/packages/reshape2/index.html), in particolare la funzione `dcast`.  
-Questa funzione, ricevendo in input la matrice, la formula per creare righe / colonne e il valore da inserire nelle celle, ci restituisce una matrice.  
+Nel pacchetto reshape2 è inclusa la funzione `acast` che prendendo in input le liste di valori, la formula per creare righe / colonne e il nome della lista relativa valore da inserire nelle celle, ci restituisce una matrice.  
+Nel nostro caso, `rating_dataset` rappresenta il dataset con tutte le colonne, `userId~movieId`rappresenta la formula per ottenere rispettivamente nelle righe gli utenti e nelle colonne i film, il valore `rating` rappresenta il valore nelle celle.   
 Utilizziamola nel nostro caso:
 ```{r}
-library("reshape2")
 converted_matrix <- acast(rating_dataset, userId~movieId, value.var = "rating")
 ```
 
 Instanziamo quindi il nostro sistema di raccomandazione, usando `reccomendlab` e normalizziamo:
 ```{r}
-library("recommenderlab")
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
-rating_matrix <- normalize(rating_matrix)
+normalized_lists <- normalize(rating_matrix)
+normalized_matrix <- getRatingMatrix(normalized_lists)
 ```
 
 Addestramento del sistema, split dei dati:
 ```{r}
-library("recommenderlab")
-min_count = min(rowCounts(rating_matrix))
-splitted_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
-
-print(min_count)
+splitted_matrix <- evaluationScheme(normalized_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
 ```
 
 Aggiungere validazione:
