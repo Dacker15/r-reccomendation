@@ -28,8 +28,8 @@ All'interno del nostro progetto, useremo diverse librerie:
 
 Installiamo quindi i pacchetti necessari per il funzionamento:
 ```{r}
-install.packages("reshape2")
-install.packages("recommenderlab")
+# install.packages("reshape2")
+# install.packages("recommenderlab")
 ```
 ed importiamolo nel progetto:
 ```{r}
@@ -42,7 +42,7 @@ movie_dataset <- read.csv("movie-dataset/movies.csv",  sep = ",")
 rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = ",")
 ```
 
-### Caricamento del dataset
+### Analisi del dataset
 
 Una volta caricati i dati, verifichiamone l'**integrità**.  
 L'integrità dei dati è essenziale per garantire l'affidabilità dei risultati dell'analisi.  
@@ -64,35 +64,66 @@ Utilizziamola nel nostro caso:
 ```{r}
 converted_matrix <- acast(rating_dataset, userId~movieId, value.var = "rating")
 ```
-
-Instanziamo quindi il nostro sistema di raccomandazione, usando `reccomendlab` e normalizziamo:
+Adesso, la possiamo usare come oggetto di tipo `realRatingMatrix`, che reccomenderlab riconosce:
 ```{r}
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
-normalized_lists <- normalize(rating_matrix)
-normalized_matrix <- getRatingMatrix(normalized_lists)
 ```
 
 Addestramento del sistema, split dei dati:
 ```{r}
-splitted_matrix <- evaluationScheme(normalized_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
+splitted_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
 ```
+
+Di seguito, facciamo l'elenco dei metodi di valutazione che possiamo avere:
+```{r}
+models_list = list(
+  "UBCF:Cosine" = list(name="UBCF", param=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson" = list(name="UBCF", param=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine" = list(name="IBCF", param=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson" = list(name="IBCF", param=list(method ="pearson", normalize="center"))
+)
+```
+
+Facciamo la valutazione di tutti:
+```{r}
+# results_list = evaluate(x=splitted_matrix, method = models_list)
+
+# results_list
+```
+Creiamo una funzione per vedere gli errori:
+```{r}
+get_model_results <- function(params) {
+ model <- Recommender(getData(splitted_matrix, "train"), params$name, parameter = params$param)
+ test <- predict(model, getData(splitted_matrix, "known"), type="ratings")
+ error <- calcPredictionAccuracy(test, getData(splitted_matrix, "unknown"))
+ return(error)
+}
+```
+
+Richiamiomala su tutti i metodi:
+```{r}
+for (params in models_list) {
+  model_error <- get_model_results(params)
+  params$results <- model_error
+}
+```
+
 
 Aggiungere validazione:
 ```{r}
-library("recommenderlab")
-ubcf_model <- Recommender(getData(splitted_matrix, "train"), "UBCF")
-ubcf_test <- predict(ubcf_model, getData(splitted_matrix, "known"), type="ratings")
-ubcf_error <- calcPredictionAccuracy(ubcf_test, getData(splitted_matrix, "unknown"))
+# ubcf_model <- Recommender(getData(splitted_matrix, "train"), "UBCF")
+# ubcf_test <- predict(ubcf_model, getData(splitted_matrix, "known"), type="ratings")
+# ubcf_error <- calcPredictionAccuracy(ubcf_test, getData(splitted_matrix, "unknown"))
 
-print(ubcf_error)
+# print(ubcf_error)
 ```
 ```{r}
-library("recommenderlab")
-ibcf_model <- Recommender(getData(splitted_matrix, "train"), "IBCF")
-ibcf_test <- predict(ibcf_model, getData(splitted_matrix, "known"), type="ratings")
-ibcf_error <- calcPredictionAccuracy(ibcf_test, getData(splitted_matrix, "unknown"))
+# library("recommenderlab")
+# ibcf_model <- Recommender(getData(splitted_matrix, "train"), "IBCF")
+# ibcf_test <- predict(ibcf_model, getData(splitted_matrix, "known"), type="ratings")
+# ibcf_error <- calcPredictionAccuracy(ibcf_test, getData(splitted_matrix, "unknown"))
 
-print(ibcf_error)
+# print(ibcf_error)
 ```
 
 Vedi altre risorse:  
