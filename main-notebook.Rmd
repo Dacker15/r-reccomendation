@@ -56,6 +56,13 @@ movie_dataset <- movie_dataset[complete.cases(movie_dataset), ]
 rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
 ```
 
+Salviamo i dati degli utenti in un data frame apposito:
+```{r}
+users_array <- unique(rating_dataset[, 1])
+users_dataset <- data.frame(userId = users_array, median=replicate(length(users_array), 0))
+```
+
+
 Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della matrice di utilità.  
 Essendo il nostro dataset organizzato per righe, è necessario effettuare una conversione.  
 Nel pacchetto reshape2 è inclusa la funzione `acast` che prendendo in input le liste di valori, la formula per creare righe / colonne e il nome della lista relativa valore da inserire nelle celle, ci restituisce una matrice.  
