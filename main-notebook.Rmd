@@ -64,6 +64,11 @@ Utilizziamola nel nostro caso:
 ```{r}
 converted_matrix <- acast(rating_dataset, userId~movieId, value.var = "rating")
 ```
+Prendiamo i dati migliori:
+```{r}
+ # rating_dataset <- rating_dataset[nrow(rating_dataset) > 50, ncol(rating_dataset) > 100]
+```
+
 Adesso, la possiamo usare come oggetto di tipo `realRatingMatrix`, che reccomenderlab riconosce:
 ```{r}
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
@@ -84,12 +89,6 @@ models_list = list(
 )
 ```
 
-Facciamo la valutazione di tutti:
-```{r}
-# results_list = evaluate(x=splitted_matrix, method = models_list)
-
-# results_list
-```
 Creiamo una funzione per vedere gli errori:
 ```{r}
 get_model_results <- function(params) {
@@ -100,30 +99,23 @@ get_model_results <- function(params) {
 }
 ```
 
-Richiamiomala su tutti i metodi:
+Richiamiamola su tutti i metodi elencati fino ad ora:
 ```{r}
-for (params in models_list) {
+for (model_name in names(models_list)) {
+  params <- models_list[[model_name]]
   model_error <- get_model_results(params)
-  params$results <- model_error
+  models_list[[model_name]] <- c(params, results=model_error)
 }
 ```
 
-
-Aggiungere validazione:
+Elenchiamo i risultati:
 ```{r}
-# ubcf_model <- Recommender(getData(splitted_matrix, "train"), "UBCF")
-# ubcf_test <- predict(ubcf_model, getData(splitted_matrix, "known"), type="ratings")
-# ubcf_error <- calcPredictionAccuracy(ubcf_test, getData(splitted_matrix, "unknown"))
-
-# print(ubcf_error)
-```
-```{r}
-# library("recommenderlab")
-# ibcf_model <- Recommender(getData(splitted_matrix, "train"), "IBCF")
-# ibcf_test <- predict(ibcf_model, getData(splitted_matrix, "known"), type="ratings")
-# ibcf_error <- calcPredictionAccuracy(ibcf_test, getData(splitted_matrix, "unknown"))
-
-# print(ibcf_error)
+for (model_name in names(models_list)) {
+  print(paste("Printing results for:", model_name))
+  print(paste("RSME:", models_list[[model_name]]$results.RMSE))
+  print(paste("MSE:", models_list[[model_name]]$results.MSE))
+  print(paste("MAE:", models_list[[model_name]]$results.MAE))
+}
 ```
 
 Vedi altre risorse:  
