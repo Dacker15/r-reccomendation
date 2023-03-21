@@ -62,6 +62,17 @@ users_array <- unique(rating_dataset[, 1])
 users_dataset <- data.frame(userId = users_array, median=replicate(length(users_array), 0))
 ```
 
+Calcoliamo la media per utente:
+```{r}
+for (user_index in 1:length(users_array)) {
+  user <- users_array[user_index]
+  single_user_dataset <- rating_dataset[rating_dataset[, 1] == user, ]
+  single_user_sum <- sum(single_user_dataset[, 3])
+  single_user_median <- single_user_sum / nrow(single_user_dataset)
+  users_dataset[user_index, 2] <- single_user_median
+}
+```
+
 
 Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della matrice di utilità.  
 Essendo il nostro dataset organizzato per righe, è necessario effettuare una conversione.  
