@@ -142,6 +142,7 @@ Vedi altre risorse:
 - [Res 1](https://rpubs.com/robertwsellers/IS643_Project_2)   
 - [Res 2](https://rpubs.com/dhairavc/628480)  
 - [Res 3](https://www.linkedin.com/pulse/create-recommendation-engine-using-r-simple-steps-minta-thomas/)  
+- [Weigth median](https://stats.stackexchange.com/questions/196653/assigning-more-weight-to-more-recent-observations-in-regression)
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
