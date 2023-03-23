@@ -59,7 +59,11 @@ rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
 Salviamo i dati degli utenti in un data frame apposito:
 ```{r}
 users_array <- unique(rating_dataset[, 1])
-users_dataset <- data.frame(userId = users_array, median=replicate(length(users_array), 0))
+users_dataset <- data.frame(
+  userId = users_array, 
+  median = replicate(length(users_array), 0), 
+  weigthed_median = replicate(length(users_array), 0),
+)
 ```
 
 Calcoliamo la media per utente:
@@ -67,9 +71,19 @@ Calcoliamo la media per utente:
 for (user_index in 1:length(users_array)) {
   user <- users_array[user_index]
   single_user_dataset <- rating_dataset[rating_dataset[, 1] == user, ]
+  single_user_last_rating <- max(single_user_dataset[, 4])
   single_user_sum <- sum(single_user_dataset[, 3])
+  single_user_weigth_sum <- 0
+  for (rating_index in 1:nrow(single_user_dataset)) {
+    row <- single_user_dataset[rating_index, ]
+    weigth <- row[, 4] / single_user_last_rating
+    weigthed_rating <- row[, 3] * weigth
+    single_user_weigth_sum <- single_user_weigth_sum + weigthed_rating
+  }
   single_user_median <- single_user_sum / nrow(single_user_dataset)
+  single_user_weigth_median <- single_user_weigth_sum / nrow(single_user_dataset)
   users_dataset[user_index, 2] <- single_user_median
+  users_dataset[user_index, 3] <- single_user_weigth_median
 }
 ```
 
