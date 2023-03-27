@@ -142,8 +142,20 @@ rating_matrix <- as(converted_matrix, "realRatingMatrix")
 
 Addestramento del sistema, split dei dati:
 ```{r}
-splitted_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
+# splitted_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
 ```
+
+Usando k-fold:
+```{r}
+splitted_matrix <- evaluationScheme(
+  data = rating_matrix, 
+  method = "cross-validation",
+  k = 4, 
+  given = 15, 
+  goodRating = 3
+)
+```
+
 
 Di seguito, facciamo l'elenco dei metodi di valutazione che possiamo avere:
 ```{r}
