@@ -126,13 +126,10 @@ Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della ma
 Essendo il nostro dataset organizzato per righe, è necessario effettuare una conversione.  
 Nel pacchetto reshape2 è inclusa la funzione `acast` che prendendo in input le liste di valori, la formula per creare righe / colonne e il nome della lista relativa valore da inserire nelle celle, ci restituisce una matrice.  
 Nel nostro caso, `rating_dataset` rappresenta il dataset con tutte le colonne, `userId~movieId`rappresenta la formula per ottenere rispettivamente nelle righe gli utenti e nelle colonne i film, il valore `rating` rappresenta il valore nelle celle.   
+
 Utilizziamola nel nostro caso:
 ```{r}
 converted_matrix <- acast(rating_dataset, userId~movieId, value.var = "rating")
-```
-Prendiamo i dati migliori:
-```{r}
- # rating_dataset <- rating_dataset[nrow(rating_dataset) > 50, ncol(rating_dataset) > 100]
 ```
 
 Adesso, la possiamo usare come oggetto di tipo `realRatingMatrix`, che reccomenderlab riconosce:
@@ -140,14 +137,16 @@ Adesso, la possiamo usare come oggetto di tipo `realRatingMatrix`, che reccomend
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
 ```
 
-Addestramento del sistema, split dei dati:
+
+Prendiamo i dati migliori (**OPZIONALE**, da commentare):
 ```{r}
-# splitted_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=17, goodRating=3, k=3)
+rating_matrix <- rating_matrix[nrow(rating_matrix) > 50, ncol(rating_matrix) > 100]
 ```
 
-Usando k-fold:
+Vediamo diversi modi per addestrare il sistema di raccomandazione:
 ```{r}
-splitted_matrix <- evaluationScheme(
+split_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=15, goodRating=3, k=3)
+k_fold_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "cross-validation",
   k = 4, 
@@ -156,23 +155,26 @@ splitted_matrix <- evaluationScheme(
 )
 ```
 
-
 Di seguito, facciamo l'elenco dei metodi di valutazione che possiamo avere:
 ```{r}
 models_list = list(
-  "UBCF:Cosine" = list(name="UBCF", param=list(method ="cosine", normalize="center")),
-  "UBCF:Pearson" = list(name="UBCF", param=list(method ="pearson", normalize="center")),
-  "IBCF:Cosine" = list(name="IBCF", param=list(method ="cosine", normalize="center")),
-  "IBCF:Pearson" = list(name="IBCF", param=list(method ="pearson", normalize="center"))
+  "UBCF:Cosine:Split" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson:Split" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine:Split" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson:Split" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:K-Fold" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson:K-Fold" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine:K-Fold" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson:K-Fold" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center"))
 )
 ```
 
 Creiamo una funzione per vedere gli errori:
 ```{r}
-get_model_results <- function(params) {
- model <- Recommender(getData(splitted_matrix, "train"), params$name, parameter = params$param)
- test <- predict(model, getData(splitted_matrix, "known"), type="ratings")
- error <- calcPredictionAccuracy(test, getData(splitted_matrix, "unknown"))
+get_model_results <- function(settings) {
+ model <- Recommender(getData(settings$data, "train"), settings$name, parameter = settings$params)
+ test <- predict(model, getData(settings$data, "known"), type="ratings")
+ error <- calcPredictionAccuracy(test, getData(settings$data, "unknown"))
  return(error)
 }
 ```
@@ -180,9 +182,9 @@ get_model_results <- function(params) {
 Richiamiamola su tutti i metodi elencati fino ad ora:
 ```{r}
 for (model_name in names(models_list)) {
-  params <- models_list[[model_name]]
-  model_error <- get_model_results(params)
-  models_list[[model_name]] <- c(params, results=model_error)
+  settings <- models_list[[model_name]]
+  model_error <- get_model_results(settings)
+  models_list[[model_name]] <- c(settings, results=model_error)
 }
 ```
 
