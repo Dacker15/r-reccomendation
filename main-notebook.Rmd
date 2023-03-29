@@ -65,6 +65,20 @@ Dalla matrice base, prendiamo solo una parte piccola di valori:
 given <- 15
 ```
 
+Prendiamo i dati migliori (**OPZIONALE**, da commentare):
+```{r}
+best_users <- sqldf("SELECT userId, COUNT(movieId) as count_user FROM rating_dataset GROUP BY userId")
+best_movies <- sqldf("SELECT movieId, COUNT(userId) as count_movie FROM rating_dataset GROUP BY movieId")
+rating_dataset <- sqldf(
+  "SELECT rating_dataset.userId, rating_dataset.movieId, rating, timestamp FROM rating_dataset 
+   LEFT JOIN best_users ON best_users.userId = rating_dataset.userId
+   LEFT JOIN best_movies ON best_movies.movieId = rating_dataset.movieId
+   WHERE count_user > 40 AND count_movie > 80
+  "
+)
+given <- 35
+```
+
 Salviamo i dati degli utenti in un data frame apposito:
 ```{r}
 users_array <- unique(rating_dataset[, 1])
