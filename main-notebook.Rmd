@@ -30,11 +30,13 @@ Installiamo quindi i pacchetti necessari per il funzionamento:
 ```{r}
 # install.packages("reshape2")
 # install.packages("recommenderlab")
+# install.packages("sqldf")
 ```
 ed importiamolo nel progetto:
 ```{r}
 library("reshape2")
 library("recommenderlab")
+library("sqldf")
 ```
 Adesso, carichiamo i dataset all'interno del progetto usando la funzione `read.csv`:
 ```{r}
@@ -54,6 +56,13 @@ Questa funzione può essere usata per effettuare una **pulizia** sui dati:
 ```{r}
 movie_dataset <- movie_dataset[complete.cases(movie_dataset), ]
 rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
+```
+
+### Qualità dei dati
+
+Dalla matrice base, prendiamo solo una parte piccola di valori:
+```{r}
+given <- 15
 ```
 
 Salviamo i dati degli utenti in un data frame apposito:
@@ -137,20 +146,21 @@ Adesso, la possiamo usare come oggetto di tipo `realRatingMatrix`, che reccomend
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
 ```
 
-
-Prendiamo i dati migliori (**OPZIONALE**, da commentare):
-```{r}
-rating_matrix <- rating_matrix[nrow(rating_matrix) > 50, ncol(rating_matrix) > 100]
-```
-
 Vediamo diversi modi per addestrare il sistema di raccomandazione:
 ```{r}
-split_matrix <- evaluationScheme(rating_matrix, method="split", train=0.8, given=15, goodRating=3, k=3)
+split_matrix <- evaluationScheme(
+  data = rating_matrix, 
+  method = "split", 
+  train = 0.8, 
+  given = given, 
+  goodRating = 3, 
+  k = 4
+)
 k_fold_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "cross-validation",
   k = 4, 
-  given = 15, 
+  given = given, 
   goodRating = 3
 )
 ```
@@ -165,7 +175,15 @@ models_list = list(
   "UBCF:Cosine:K-Fold" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
   "UBCF:Pearson:K-Fold" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
   "IBCF:Cosine:K-Fold" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
-  "IBCF:Pearson:K-Fold" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center"))
+  "IBCF:Pearson:K-Fold" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:Split:Z" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
+  "UBCF:Pearson:Split:Z" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="z-score")),
+  "IBCF:Cosine:Split:Z" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
+  "IBCF:Pearson:Split:Z" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="z-score")),
+  "UBCF:Cosine:K-Fold:Z" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
+  "UBCF:Pearson:K-Fold:Z" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="z-score")),
+  "IBCF:Cosine:K-Fold:Z" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
+  "IBCF:Pearson:K-Fold:Z" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="z-score"))
 )
 ```
 
