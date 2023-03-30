@@ -73,10 +73,10 @@ rating_dataset <- sqldf(
   "SELECT rating_dataset.userId, rating_dataset.movieId, rating, timestamp FROM rating_dataset 
    LEFT JOIN best_users ON best_users.userId = rating_dataset.userId
    LEFT JOIN best_movies ON best_movies.movieId = rating_dataset.movieId
-   WHERE count_user > 200 AND count_movie > 400
+   WHERE count_user > 300 AND count_movie > 600
   "
 )
-given <- 160
+given <- 240
 ```
 
 Salviamo i dati degli utenti in un data frame apposito:
