@@ -20,6 +20,7 @@ Creeremo diversi sistemi di raccomandazione e ne confronteremo le prestazioni. U
 Useremo questo [dataset](https://grouplens.org/datasets/movielens/1m/) per generare i sistemi. Al suo interno sono presenti due tabelle `.csv`:  
 - `movies.csv`: contiene l'elenco dei film, con i campi `movieId`, `title` e `genres`.  
 - `ratings.csv`: contiene l'elenco delle valutazione relative agli utenti, con i campi `userId`, `movieId`, `rating`, `timestamp`.  
+- `users.csv`: contiene l'elenco degli utenti e le loro informazioni, con i campi `userId`, `gender`, `age`, `occupation`, `zip`.  
 
 ### Preparazione dell'ambiente
 All'interno del nostro progetto, useremo diverse librerie:  
@@ -73,20 +74,30 @@ given <- 240
 
 ### Analisi del dataset
 
-Salviamo i dati degli utenti in un data frame apposito:
+Dopo un primo filtro, possiamo caricare i dati relativi agli utenti:
 ```{r}
-users_array <- unique(rating_dataset[, 1])
-users_dataset <- data.frame(
-  userId = users_array, 
-  median = replicate(length(users_array), 0), 
-  weigthed_median = replicate(length(users_array), 0)
-)
+users_dataset <- read.csv('movie-dataset/users.csv')
+```
+
+Da questi, leviamo gli utenti che non sono più inclusi nelle valutazioni:
+```{r}
+users_dataset <- sqldf("
+  SELECT userId, gender, age, occupation, zip FROM users_dataset
+  WHERE userId IN (SELECT DISTINCT(userId) FROM rating_dataset)
+")
+```
+
+
+Aggiungiamo le colonne per conservare i dati relativi alla media:
+```{r}
+users_dataset['mean'] <- replicate(nrow(users_dataset), 0)
+users_dataset['weigthed_mean'] <- replicate(nrow(users_dataset), 0)
 ```
 
 Calcoliamo la media per utente:
 ```{r}
-for (user_index in 1:length(users_array)) {
-  user <- users_array[user_index]
+for (user_index in 1:nrow(users_dataset)) {
+  user <- users_dataset[user_index, 1]
   single_user_dataset <- rating_dataset[rating_dataset[, 1] == user, ]
   single_user_last_rating <- max(single_user_dataset[, 4])
   single_user_sum <- sum(single_user_dataset[, 3])
@@ -99,8 +110,8 @@ for (user_index in 1:length(users_array)) {
   }
   single_user_median <- single_user_sum / nrow(single_user_dataset)
   single_user_weigth_median <- single_user_weigth_sum / nrow(single_user_dataset)
-  users_dataset[user_index, 2] <- single_user_median
-  users_dataset[user_index, 3] <- single_user_weigth_median
+  users_dataset[user_index, 'mean'] <- single_user_median
+  users_dataset[user_index, 'weigthed_mean'] <- single_user_weigth_median
 }
 ```
 
@@ -120,7 +131,7 @@ Printiamo il rating medio, pesato e non:
 ```{r}
 par(mfrow = c(1,2))
 hist(
-  users_dataset[, 2],
+  users_dataset[, 'mean'],
   breaks = 5,
   main = 'Average non-weigthed mean ratings', 
   xlab = 'Mean ratings',
@@ -128,7 +139,7 @@ hist(
   border = '#2166AC'
 )
 hist(
-  users_dataset[, 3],
+  users_dataset[, 'weigthed_mean'],
   breaks = 5,
   main = 'Average weigthed mean ratings', 
   xlab = 'Mean ratings',
