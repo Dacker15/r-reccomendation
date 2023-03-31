@@ -87,38 +87,53 @@ users_dataset <- sqldf("
 ")
 ```
 
+Una volta rimosso dal dataset degli utenti che non hanno fatto recensito abbastanza film, aggiungiamo al data frame le seguenti colonne:  
+- `mean`, contiene la media delle valutazione lasciate dall'utente.  
+- `weighted_mean`, contiene la media pesata con il timestamp delle valutazioni lasciate dall'utente.  
+- `ratings_range`, contiene la differenza fra la prima valutazione e l'ultima valutazione lasciata dall'utente.  
+- `mean_diff`, contiene la differenza fra la media aritmetica e la media pesata delle valutazioni.  
 
-Aggiungiamo le colonne per conservare i dati relativi alla media:
+Gli ultimi due campi ci permetterrano di dimostrare se esiste una correlazione fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione.  
+In pratica, vogliamo verificare se in un intervallo temporale più ampio, la differenza fra la media aritmetica e quella pesata aumenta.
+
 ```{r}
 users_dataset['mean'] <- replicate(nrow(users_dataset), 0)
 users_dataset['weigthed_mean'] <- replicate(nrow(users_dataset), 0)
+users_dataset['ratings_range'] <- replicate(nrow(users_dataset), 0)
+users_dataset['mean_diff'] <- replicate(nrow(users_dataset), 0)
 ```
 
-Calcoliamo la media per utente:
+Una volta aggiunti i campi, effettuiamo tutti i calcoli necessari per popolare i campi:
 ```{r}
 for (user_index in 1:nrow(users_dataset)) {
-  user <- users_dataset[user_index, 1]
-  single_user_dataset <- rating_dataset[rating_dataset[, 1] == user, ]
-  single_user_last_rating <- max(single_user_dataset[, 4])
-  single_user_sum <- sum(single_user_dataset[, 3])
+  user <- users_dataset[user_index, 'userId']
+  single_user_dataset <- rating_dataset[rating_dataset[, 'userId'] == user, ]
+  single_user_first_rating <- min(single_user_dataset[, 'timestamp'])
+  single_user_last_rating <- max(single_user_dataset[, 'timestamp'])
+  single_user_time_range <- single_user_last_rating - single_user_first_rating
+  single_user_sum <- sum(single_user_dataset[, 'rating'])
   single_user_weigth_sum <- 0
   for (rating_index in 1:nrow(single_user_dataset)) {
     row <- single_user_dataset[rating_index, ]
-    weigth <- row[, 4] / single_user_last_rating
-    weigthed_rating <- row[, 3] * weigth
+    weigth <- row[, 'timestamp'] / single_user_last_rating
+    weigthed_rating <- row[, 'rating'] * weigth
     single_user_weigth_sum <- single_user_weigth_sum + weigthed_rating
   }
   single_user_median <- single_user_sum / nrow(single_user_dataset)
   single_user_weigth_median <- single_user_weigth_sum / nrow(single_user_dataset)
+  single_user_mean_diff <- abs(single_user_weigth_median - single_user_median)
   users_dataset[user_index, 'mean'] <- single_user_median
   users_dataset[user_index, 'weigthed_mean'] <- single_user_weigth_median
+  users_dataset[user_index, 'ratings_range'] <- single_user_time_range
+  users_dataset[user_index, 'mean_diff'] <- single_user_mean_diff
 }
 ```
 
-Pritiamo l'analisi del dataset:
+Dopo aver effettuato tutti i calcoli, vediamo i risultati.
+Il primo grafico che vediamo è relativo alle valutazioni all'interno del dataset.
 ```{r}
 hist(
-  rating_dataset[, 3],
+  rating_dataset[, 'rating'],
   breaks = 5,
   main = 'Frequency of registered ratings', 
   xlab = 'Ratings', 
@@ -127,7 +142,7 @@ hist(
 )
 ```
 
-Printiamo il rating medio, pesato e non:
+I prossimi due grafici che vedremo rispettivamente la media aritmetica e la media pesata delle valutazioni:
 ```{r}
 par(mfrow = c(1,2))
 hist(
@@ -147,8 +162,25 @@ hist(
   border = '#B2182B'
 )
 ```
+Osservando i due grafici, notiamo che i valori assegnati alla media pesata sono  tendenzialmente più bassi.  
 
+Il terzo grafico ci mostra l'andamento fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione.  
 
+```{r}
+plot(
+  x = users_dataset[, 'ratings_range'], 
+  y = users_dataset[, 'mean_diff'], 
+  pch = 16, 
+  xlab = 'Difference between last rating and first rating',
+  ylab = 'Difference between weighted mean and mean',
+  main = 'Correlation between ratings range and mean difference',
+  col = '#F4A582'
+)
+```
+Dal grafico, notiamo che all'aumentare della differenza temporale fra la prima e l'ultima valutazione, aumenta anche la differenza fra la media aritmetica e pesata.  
+Possiamo dunque concludere che esiste una correlazione fra i due valori.
+
+### Creazione dei sistemi di raccomandazione
 
 Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della matrice di utilità.  
 Essendo il nostro dataset organizzato per righe, è necessario effettuare una conversione.  
