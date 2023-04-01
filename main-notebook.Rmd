@@ -226,10 +226,10 @@ k_fold_matrix <- evaluationScheme(
 Di seguito, facciamo l'elenco dei metodi di valutazione che possiamo avere:
 ```{r}
 models_split_list <- list(
-  "UBCF:Cosine" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
-  "UBCF:Pearson" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
-  "IBCF:Cosine" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
-  "IBCF:Pearson" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:Center" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson:Center" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine:Center" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson:Center" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
   "UBCF:Cosine:Z-Score" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
   "UBCF:Pearson:Z-Score" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="z-score")),
   "IBCF:Cosine:Z-Score" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
@@ -237,10 +237,10 @@ models_split_list <- list(
 )
 
 models_bootstrap_list <- list(
-  "UBCF:Cosine" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="center")),
-  "UBCF:Pearson" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="center")),
-  "IBCF:Cosine" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="center")),
-  "IBCF:Pearson" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:Center" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson:Center" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine:Center" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson:Center" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="center")),
   "UBCF:Cosine:Z-Score" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="z-score")),
   "UBCF:Pearson:Z-Score" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="z-score")),
   "IBCF:Cosine:Z-Score" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="z-score")),
@@ -248,10 +248,10 @@ models_bootstrap_list <- list(
 )
 
 models_k_fold_list <- list(
-  "UBCF:Cosine" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
-  "UBCF:Pearson" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
-  "IBCF:Cosine" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
-  "IBCF:Pearson" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:Center" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson:Center" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine:Center" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson:Center" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
   "UBCF:Cosine:Z-Score" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
   "UBCF:Pearson:Z-Score" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="z-score")),
   "IBCF:Cosine:Z-Score" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
@@ -310,6 +310,30 @@ models_k_fold_results <- data.frame(
 models_split_results
 models_bootstrap_results
 models_k_fold_results
+```
+
+E calcoliamo la media delle singoli valutazioni:
+```{r}
+models_mean_error <- data.frame(
+  rmse = c(
+    mean(models_split_results[, 'rmse']),
+    mean(models_bootstrap_results[, 'rmse']),
+    mean(models_k_fold_results[, 'rmse'])
+  ),
+  mse = c(
+    mean(models_split_results[, 'mse']),
+    mean(models_bootstrap_results[, 'mse']),
+    mean(models_k_fold_results[, 'mse'])
+  ),
+  mae = c(
+    mean(models_split_results[, 'mae']),
+    mean(models_bootstrap_results[, 'mae']),
+    mean(models_k_fold_results[, 'mae'])
+  )
+)
+rownames(models_mean_error) <- c('Split evaluation', 'Bootstrap evaluation', 'K-Fold evaluation')
+
+models_mean_error
 ```
 
 
