@@ -207,6 +207,13 @@ split_matrix <- evaluationScheme(
   goodRating = 3, 
   k = 4
 )
+bootstrap_matrix <- evaluationScheme(
+  data = rating_matrix, 
+  method = "bootstrap",
+  k = 4, 
+  given = given, 
+  goodRating = 3
+)
 k_fold_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "cross-validation",
@@ -218,29 +225,43 @@ k_fold_matrix <- evaluationScheme(
 
 Di seguito, facciamo l'elenco dei metodi di valutazione che possiamo avere:
 ```{r}
-models_list = list(
-  "UBCF:Cosine:Split" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
-  "UBCF:Pearson:Split" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
-  "IBCF:Cosine:Split" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
-  "IBCF:Pearson:Split" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
-  "UBCF:Cosine:K-Fold" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
-  "UBCF:Pearson:K-Fold" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
-  "IBCF:Cosine:K-Fold" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
-  "IBCF:Pearson:K-Fold" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
-  "UBCF:Cosine:Split:Z" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
-  "UBCF:Pearson:Split:Z" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="z-score")),
-  "IBCF:Cosine:Split:Z" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
-  "IBCF:Pearson:Split:Z" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="z-score")),
-  "UBCF:Cosine:K-Fold:Z" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
-  "UBCF:Pearson:K-Fold:Z" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="z-score")),
-  "IBCF:Cosine:K-Fold:Z" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
-  "IBCF:Pearson:K-Fold:Z" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="z-score"))
+models_split_list <- list(
+  "UBCF:Cosine" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:Z-Score" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
+  "UBCF:Pearson:Z-Score" = list(name="UBCF", data=split_matrix, params=list(method ="pearson", normalize="z-score")),
+  "IBCF:Cosine:Z-Score" = list(name="IBCF", data=split_matrix, params=list(method ="cosine", normalize="z-score")),
+  "IBCF:Pearson:Z-Score" = list(name="IBCF", data=split_matrix, params=list(method ="pearson", normalize="z-score"))
+)
+
+models_bootstrap_list <- list(
+  "UBCF:Cosine" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:Z-Score" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="z-score")),
+  "UBCF:Pearson:Z-Score" = list(name="UBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="z-score")),
+  "IBCF:Cosine:Z-Score" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="cosine", normalize="z-score")),
+  "IBCF:Pearson:Z-Score" = list(name="IBCF", data=bootstrap_matrix, params=list(method ="pearson", normalize="z-score"))
+)
+
+models_k_fold_list <- list(
+  "UBCF:Cosine" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
+  "UBCF:Pearson" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
+  "IBCF:Cosine" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="center")),
+  "IBCF:Pearson" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="center")),
+  "UBCF:Cosine:Z-Score" = list(name="UBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
+  "UBCF:Pearson:Z-Score" = list(name="UBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="z-score")),
+  "IBCF:Cosine:Z-Score" = list(name="IBCF", data=k_fold_matrix, params=list(method ="cosine", normalize="z-score")),
+  "IBCF:Pearson:Z-Score" = list(name="IBCF", data=k_fold_matrix, params=list(method ="pearson", normalize="z-score"))
 )
 ```
 
 Creiamo una funzione per vedere gli errori:
 ```{r}
-get_model_results <- function(settings) {
+trainModel <- function(settings) {
  model <- Recommender(getData(settings$data, "train"), settings$name, parameter = settings$params)
  test <- predict(model, getData(settings$data, "known"), type="ratings")
  error <- calcPredictionAccuracy(test, getData(settings$data, "unknown"))
@@ -248,24 +269,49 @@ get_model_results <- function(settings) {
 }
 ```
 
-Richiamiamola su tutti i metodi elencati fino ad ora:
+Creiamo una funzione per addestrare tutti i sistemi di una categoria:
 ```{r}
-for (model_name in names(models_list)) {
-  settings <- models_list[[model_name]]
-  model_error <- get_model_results(settings)
-  models_list[[model_name]] <- c(settings, results=model_error)
+trainModels <- function(models_list) {
+  for (model_name in names(models_list)) {
+    settings <- models_list[[model_name]]
+    model_error <- trainModel(settings)
+    models_list[[model_name]] <- c(settings, results = model_error)
+  }
+  return(models_list)
 }
 ```
 
-Elenchiamo i risultati:
+Richiamiamola su tutti i metodi elencati fino ad ora:
 ```{r}
-for (model_name in names(models_list)) {
-  print(paste("Printing results for:", model_name))
-  print(paste("RSME:", models_list[[model_name]]$results.RMSE))
-  print(paste("MSE:", models_list[[model_name]]$results.MSE))
-  print(paste("MAE:", models_list[[model_name]]$results.MAE))
-}
+models_split_list <- trainModels(models_split_list)
+models_bootstrap_list <- trainModels(models_bootstrap_list)
+models_k_fold_list <- trainModels(models_k_fold_list)
 ```
+
+
+Organizziamo i dati salvati in un data frame:
+```{r}
+models_split_results <- data.frame(
+  rmse = sapply(models_split_list, '[[', 'results.RMSE'),
+  mse = sapply(models_split_list, '[[', 'results.MSE'),
+  mae = sapply(models_split_list, '[[', 'results.MAE')
+)
+models_bootstrap_results <- data.frame(
+  rmse = sapply(models_bootstrap_list, '[[', 'results.RMSE'),
+  mse = sapply(models_bootstrap_list, '[[', 'results.MSE'),
+  mae = sapply(models_bootstrap_list, '[[', 'results.MAE')
+)
+models_k_fold_results <- data.frame(
+  rmse = sapply(models_k_fold_list, '[[', 'results.RMSE'),
+  mse = sapply(models_k_fold_list, '[[', 'results.MSE'),
+  mae = sapply(models_k_fold_list, '[[', 'results.MAE')
+)
+
+models_split_results
+models_bootstrap_results
+models_k_fold_results
+```
+
 
 Vedi altre risorse:  
 - [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)  
