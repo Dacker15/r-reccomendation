@@ -197,33 +197,68 @@ Adesso, la possiamo usare come oggetto di tipo `realRatingMatrix`, che reccomend
 rating_matrix <- as(converted_matrix, "realRatingMatrix")
 ```
 
-Vediamo diversi modi per addestrare il sistema di raccomandazione:
+`reccomenderlab` supporta diversi modi per addestrare il sistema di raccomandazione:  
+- **Split**, implica la suddivisione del dataset in due parti, una per il training e l'altra per il testing. Generalmente, si divide il dataset in modo che il 70-80% dei dati siano utilizzati per il training e il restante 20-30% per il testing. Questa tecnica è semplice e veloce da implementare, tuttavia, la scelta di come suddividere il dataset in training e testing può influenzare significativamente l'accuratezza del modello.  
+- **Bootstrap**, prevede di creare diverse ripetizioni del dataset (sampling con ripetizione) e di selezionare casualmente il training e il test set in ogni ripetizione. In questo modo, ogni osservazione ha la stessa probabilità di essere selezionata per il training set o il test set in ogni ripetizione.   
+- **Cross Validation** (validazione incrociata), prevede di suddividere il dataset in k parti uguali, chiamate fold. Il modello viene poi addestrato su k-1 fold e testato sul fold rimanente. Questo processo viene ripetuto k volte, utilizzando un fold differente come test set ad ogni ripetizione. In questo modo, ogni osservazione viene utilizzata sia per il training che per il testing. Questa tecnica può essere utile per valutare il modello in modo più accurato, riducendo l'effetto della scelta casuale dei dati di training e testing.   
+
+Creiamo quindi i diversi schemi che utilizzeremo in sequenza:
 ```{r}
 split_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "split", 
   train = 0.8, 
   given = given, 
-  goodRating = 3, 
-  k = 4
+  goodRating = 3
 )
 bootstrap_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "bootstrap",
-  k = 4, 
   given = given, 
   goodRating = 3
 )
 k_fold_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "cross-validation",
-  k = 4, 
+  k = 8, 
   given = given, 
   goodRating = 3
 )
 ```
 
-Di seguito, facciamo l'elenco dei metodi di valutazione che possiamo avere:
+Dopo aver generato i possibili modi per addestrare il sistema di raccomandazione, creiamo i modelli che addestreremo.  
+`reccomenderlab` ci permette di impostare diversi parametri nella creazione di un modello, fra cui:  
+- `name`, indica come `reccomenderlab` gestisce il tipo di sistema di raccomandazione.  
+- `method`, indica la formula matematica usata per misurare la similarità fra due insiemi di dati.  
+- `normalize`, indica la formula matematica usata per normalizzare la matrice di utilità del sistema di raccomandazione.  
+
+Come tipologia di sistemi, quindi come `name`, useremo:  
+- **UBCF** (User Based Collaborative Filtering).  
+- **IBCF** (Item Based Collaborative Filtering).  
+
+Come formula per valutare la similarità fra due insieme di dati, useremo:  
+- **Similarità del coseno**:
+$$
+\text{cossim}(\mathbf{x}, \mathbf{y}) = \frac{\mathbf{x} \cdot \mathbf{y}}{|\mathbf{x}| |\mathbf{y}|}
+$$
+- **Correlazione di Pearson**:
+$$
+\text{correlation}(X, Y) = \frac{\text{cov}(X, Y)}{\text{std}(X) \cdot \text{std}(Y)}
+$$
+Entrambe le misure ritornano un valore da -1 ad 1, dove al valore -1 corrisponde una similarità nulla, mentre al valore 1 corrisponde una similarità totale.
+
+Come misure di normalizzazione, quindi come `normalize`, useremo:  
+- **Center**:
+$$
+r'_{u,i} = r_{u,i} - \mu_u
+$$
+- **Z-Score**:
+$$
+r'_{u,i} = \frac{r_{u,i} - \mu_u}{\sigma_u}
+$$
+La principale differenza sta nel calcolo: mentre la normalizzazione center calcola semplicemente la media delle valutazione e le sottrae al rating dell'oggetto $i$ relativo all'utente $u$, la normalizzazione z-score divide tutto per la deviazione standard.
+
+Dopo aver elencato tutti i possibili parametri, generiamo i singoli modelli, assegnandoli ad una lista diversa in base al modo in cui i dati assegnati ad essi sono stati suddivisi:
 ```{r}
 models_split_list <- list(
   "UBCF:Cosine:Center" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
@@ -259,7 +294,7 @@ models_k_fold_list <- list(
 )
 ```
 
-Creiamo una funzione per vedere gli errori:
+Creiamo una funzione per addestrare il sistema e valutarne gli errori sul test set:
 ```{r}
 trainModel <- function(settings) {
  model <- Recommender(getData(settings$data, "train"), settings$name, parameter = settings$params)
@@ -269,7 +304,7 @@ trainModel <- function(settings) {
 }
 ```
 
-Creiamo una funzione per addestrare tutti i sistemi di una categoria:
+Creiamo una funzione per addestrare tutti i sistemi di una lista:
 ```{r}
 trainModels <- function(models_list) {
   for (model_name in names(models_list)) {
@@ -281,7 +316,7 @@ trainModels <- function(models_list) {
 }
 ```
 
-Richiamiamola su tutti i metodi elencati fino ad ora:
+Richiamiamola sulle liste generate:
 ```{r}
 models_split_list <- trainModels(models_split_list)
 models_bootstrap_list <- trainModels(models_bootstrap_list)
@@ -289,7 +324,7 @@ models_k_fold_list <- trainModels(models_k_fold_list)
 ```
 
 
-Organizziamo i dati salvati in un data frame:
+Organizziamo i dati salvati dall'addestramento in un data frame:
 ```{r}
 models_split_results <- data.frame(
   rmse = sapply(models_split_list, '[[', 'results.RMSE'),
@@ -312,7 +347,7 @@ models_bootstrap_results
 models_k_fold_results
 ```
 
-E calcoliamo la media delle singoli valutazioni:
+E calcoliamo la media degli errori:
 ```{r}
 models_mean_error <- data.frame(
   rmse = c(
@@ -331,7 +366,7 @@ models_mean_error <- data.frame(
     mean(models_k_fold_results[, 'mae'])
   )
 )
-rownames(models_mean_error) <- c('Split evaluation', 'Bootstrap evaluation', 'K-Fold evaluation')
+rownames(models_mean_error) <- c('Split method', 'Bootstrap method', 'Cross validation method')
 
 models_mean_error
 ```
