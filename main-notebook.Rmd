@@ -105,25 +105,28 @@ users_dataset['mean_diff'] <- replicate(nrow(users_dataset), 0)
 
 Una volta aggiunti i campi, effettuiamo tutti i calcoli necessari per popolare i campi:
 ```{r}
+map_range <- function(x, min_val, max_val, new_min = 0.5, new_max = 1.5) {
+  y <- (x - min_val) * (new_max - new_min) / (max_val - min_val) + new_min
+  return(y)
+}
+
+
 for (user_index in 1:nrow(users_dataset)) {
   user <- users_dataset[user_index, 'userId']
   single_user_dataset <- rating_dataset[rating_dataset[, 'userId'] == user, ]
   single_user_first_rating <- min(single_user_dataset[, 'timestamp'])
   single_user_last_rating <- max(single_user_dataset[, 'timestamp'])
   single_user_time_range <- single_user_last_rating - single_user_first_rating
-  single_user_sum <- sum(single_user_dataset[, 'rating'])
-  single_user_weigth_sum <- 0
-  for (rating_index in 1:nrow(single_user_dataset)) {
-    row <- single_user_dataset[rating_index, ]
-    weigth <- row[, 'timestamp'] / single_user_last_rating
-    weigthed_rating <- row[, 'rating'] * weigth
-    single_user_weigth_sum <- single_user_weigth_sum + weigthed_rating
-  }
-  single_user_median <- single_user_sum / nrow(single_user_dataset)
-  single_user_weigth_median <- single_user_weigth_sum / nrow(single_user_dataset)
-  single_user_mean_diff <- abs(single_user_weigth_median - single_user_median)
-  users_dataset[user_index, 'mean'] <- single_user_median
-  users_dataset[user_index, 'weigthed_mean'] <- single_user_weigth_median
+  single_user_ratings <- single_user_dataset[, 'rating']
+  single_user_weigths <- sapply(
+    single_user_dataset[, 'timestamp'], 
+    function (x) map_range(x, single_user_first_rating, single_user_last_rating)
+  )
+  single_user_mean <- mean(single_user_ratings)
+  single_user_weight_mean <- weighted.mean(single_user_ratings, single_user_weigths)
+  single_user_mean_diff <- abs(single_user_weight_mean - single_user_mean)
+  users_dataset[user_index, 'mean'] <- single_user_mean
+  users_dataset[user_index, 'weigthed_mean'] <- single_user_weight_mean
   users_dataset[user_index, 'ratings_range'] <- single_user_time_range
   users_dataset[user_index, 'mean_diff'] <- single_user_mean_diff
 }
@@ -177,8 +180,7 @@ plot(
   col = '#F4A582'
 )
 ```
-Dal grafico, notiamo che all'aumentare della differenza temporale fra la prima e l'ultima valutazione, aumenta anche la differenza fra la media aritmetica e pesata.  
-Possiamo dunque concludere che esiste una correlazione fra i due valori.
+Dal grafico, notiamo che i valori si concentrano principalmente sulla parte bassa del grafico. Ciò significa che non è detto che all'aumentare della variazione della media corrisponda un aumento del range temporale.
 
 ### Creazione dei sistemi di raccomandazione
 
