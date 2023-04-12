@@ -36,8 +36,8 @@ library("sqldf")
 ```
 Adesso, carichiamo i dataset all'interno del progetto usando la funzione `read.csv`:
 ```{r}
-movie_dataset <- read.csv("movie-dataset/movies.csv",  sep = ",")
-rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = ",")
+movie_dataset <- read.csv("movie-dataset/movies.csv",  sep = "+")
+rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = "+")
 ```
 
 ### Pulizia del dataset
@@ -76,7 +76,7 @@ given <- 240
 
 Dopo un primo filtro, possiamo caricare i dati relativi agli utenti:
 ```{r}
-users_dataset <- read.csv('movie-dataset/users.csv')
+users_dataset <- read.csv('movie-dataset/users.csv', sep = '+')
 ```
 
 Da questi, leviamo gli utenti che non sono più inclusi nelle valutazioni:
@@ -93,7 +93,7 @@ Una volta rimosso dal dataset degli utenti che non hanno fatto recensito abbasta
 - `ratings_range`, contiene la differenza fra la prima valutazione e l'ultima valutazione lasciata dall'utente.  
 - `mean_diff`, contiene la differenza fra la media aritmetica e la media pesata delle valutazioni.  
 
-Gli ultimi due campi ci permetterrano di dimostrare se esiste una correlazione fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione.  
+Gli ultimi due campi ci permetteranno di dimostrare se esiste una correlazione fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione.  
 In pratica, vogliamo verificare se in un intervallo temporale più ampio, la differenza fra la media aritmetica e quella pesata aumenta.
 
 ```{r}
