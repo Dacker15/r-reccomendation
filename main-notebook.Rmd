@@ -373,6 +373,41 @@ rownames(models_mean_error) <- c('Split method', 'Bootstrap method', 'Cross vali
 models_mean_error
 ```
 
+### Normalizzazione temporale
+All'interno di un sistema di raccomandazione, potremmo anche normalizzare secondo una funzione personalizzata. Come abbiamo visto prima, con l'utilizzo dei timestamp, possiamo ricavare una media pesata in cui diamo meno peso alla valutazione meno recenti ed un peso maggiore alle valutazione più recenti.  
+Affinché R possa creare un sistema personalizzato, occorre creare una funzione `normalize` personalizzata che chiameremo `weight_normalize`.  
+La funzione necessita di un matrice di timestamp, da usare come media pesata:
+```{r}
+timestamp_matrix <- acast(rating_dataset, userId~movieId, value.var = "timestamp")
+```
+
+```{r}
+timestamp_normalize <- function(matrix_input) {
+  n_rows <- nrow(matrix_input)
+  n_cols <- ncol(matrix_input)
+  
+  for (i in 1:n_rows) {
+    row_i <- matrix_input[i, ]
+    
+    min_i <- min(row_i, na.rm = TRUE)
+    max_i <- max(row_i, na.rm = TRUE)
+    
+    for (j in 1:n_cols) {
+      if (!is.na(matrix_input[i, j])) {
+       matrix_input[i, j] = map_range(matrix_input[i, j], min_i, max_i) 
+      }
+    }
+  }
+
+  return(matrix_input)
+}
+
+```
+
+e applichiamola sulla matrice dei timestamp:
+```{r}
+timestamp_matrix <- timestamp_normalize(timestamp_matrix)
+```
 
 Vedi altre risorse:  
 - [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)  
