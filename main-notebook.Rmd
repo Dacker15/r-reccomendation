@@ -374,13 +374,13 @@ models_mean_error
 ```
 
 ### Normalizzazione temporale
-All'interno di un sistema di raccomandazione, potremmo anche normalizzare secondo una funzione personalizzata. Come abbiamo visto prima, con l'utilizzo dei timestamp, possiamo ricavare una media pesata in cui diamo meno peso alla valutazione meno recenti ed un peso maggiore alle valutazione più recenti.  
+All'interno di un sistema di raccomandazione, potremmo anche normalizzare secondo una funzione personalizzata. Come abbiamo visto prima, con l'utilizzo dei timestamp, possiamo ricavare una media pesata in cui diamo un peso minore alla valutazione meno recenti ed un peso maggiore alle valutazione più recenti.  
 Affinché R possa creare un sistema personalizzato, occorre creare una funzione `normalize` personalizzata che chiameremo `weight_normalize`.  
 La funzione necessita di un matrice di timestamp, da usare come media pesata:
 ```{r}
 timestamp_matrix <- acast(rating_dataset, userId~movieId, value.var = "timestamp")
 ```
-
+Inoltre, è necessario che i timestamp vadano normalizzati all'interno di un certo intervallo. Il nostro intervallo andrà da `0.5` a `1.5`. Per effettuare questa operazione, creiamo una funzione chiamata `timestamp_normalize`:
 ```{r}
 timestamp_normalize <- function(matrix_input) {
   n_rows <- nrow(matrix_input)
@@ -409,6 +409,7 @@ e applichiamola sulla matrice dei timestamp:
 timestamp_matrix <- timestamp_normalize(timestamp_matrix)
 ```
 
+A questo punto, possiamo creare la funzione `weight_normalize` che genera la media pesata e ritorna una matrice normalizzata subito utilizzabile:
 ```{r}
 weight_normalize <- function(x, y, row = TRUE) {
   n_rows = nrow(x)
@@ -427,6 +428,8 @@ weight_normalize <- function(x, y, row = TRUE) {
   rownames(matrix_output) <- rownames(x)
   colnames(matrix_output) <- colnames(x)
   
+  means <- list()
+  
   if (row) {
     for (i in 1:n_rows) {
       values_raw = x[i, ]
@@ -434,6 +437,7 @@ weight_normalize <- function(x, y, row = TRUE) {
       weights_raw = y[i, ]
       weights = weights_raw[!is.na(weights_raw)]
       weight_mean = weighted.mean(values, weights)
+      means[[i]] <- weight_mean
       
       for (j in 1:n_cols) {
         if (!is.na(x[i, j])) {
@@ -457,10 +461,13 @@ weight_normalize <- function(x, y, row = TRUE) {
     }
   }
   
-  return(matrix_output)
+  normalized <- as(matrix_output, "realRatingMatrix")
+  normalize_field <- if (row) "row" else "col"
+  normalized@normalize[[normalize_field]] <- list(method='weight', factors=list(means=means, sds=NULL))
+  return(normalized)
 }
 ```
-
+Generiamo dunque la nostra matrice:
 ```{r}
 weighted_matrix <- weight_normalize(converted_matrix, timestamp_matrix)
 ```
