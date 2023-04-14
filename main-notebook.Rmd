@@ -472,6 +472,118 @@ Generiamo dunque la nostra matrice:
 weighted_matrix <- weight_normalize(converted_matrix, timestamp_matrix)
 ```
 
+Ripetiamo tutte le operazione precedenti utilizzando la matrice d'utilità ottenuta con la media pesata al posto della matrice originale:
+```{r}
+weight_split_matrix <- evaluationScheme(
+  data = weighted_matrix, 
+  method = "split", 
+  train = 0.8, 
+  given = given, 
+  goodRating = 3
+)
+weight_bootstrap_matrix <- evaluationScheme(
+  data = weighted_matrix, 
+  method = "bootstrap",
+  given = given, 
+  goodRating = 3
+)
+weight_k_fold_matrix <- evaluationScheme(
+  data = weighted_matrix, 
+  method = "cross-validation",
+  k = 8, 
+  given = given, 
+  goodRating = 3
+)
+```
+
+Generiamo i modelli pesati. In questo caso, rimuoviamo il parametro `normalize` dato che stiamo lavorando con una matrice già normalizzata:
+```{r}
+weight_models_split_list <- list(
+  "UBCF:Cosine:Center" = list(name="UBCF", data=weight_split_matrix, params=list(method ="cosine")),
+  "UBCF:Pearson:Center" = list(name="UBCF", data=weight_split_matrix, params=list(method ="pearson")),
+  "IBCF:Cosine:Center" = list(name="IBCF", data=weight_split_matrix, params=list(method ="cosine")),
+  "IBCF:Pearson:Center" = list(name="IBCF", data=weight_split_matrix, params=list(method ="pearson")),
+  "UBCF:Cosine:Z-Score" = list(name="UBCF", data=weight_split_matrix, params=list(method ="cosine")),
+  "UBCF:Pearson:Z-Score" = list(name="UBCF", data=weight_split_matrix, params=list(method ="pearson")),
+  "IBCF:Cosine:Z-Score" = list(name="IBCF", data=weight_split_matrix, params=list(method ="cosine")),
+  "IBCF:Pearson:Z-Score" = list(name="IBCF", data=weight_split_matrix, params=list(method ="pearson"))
+)
+
+weight_models_bootstrap_list <- list(
+  "UBCF:Cosine:Center" = list(name="UBCF", data=weight_bootstrap_matrix, params=list(method ="cosine")),
+  "UBCF:Pearson:Center" = list(name="UBCF", data=weight_bootstrap_matrix, params=list(method ="pearson")),
+  "IBCF:Cosine:Center" = list(name="IBCF", data=weight_bootstrap_matrix, params=list(method ="cosine")),
+  "IBCF:Pearson:Center" = list(name="IBCF", data=weight_bootstrap_matrix, params=list(method ="pearson")),
+  "UBCF:Cosine:Z-Score" = list(name="UBCF", data=weight_bootstrap_matrix, params=list(method ="cosine")),
+  "UBCF:Pearson:Z-Score" = list(name="UBCF", data=weight_bootstrap_matrix, params=list(method ="pearson")),
+  "IBCF:Cosine:Z-Score" = list(name="IBCF", data=weight_bootstrap_matrix, params=list(method ="cosine")),
+  "IBCF:Pearson:Z-Score" = list(name="IBCF", data=weight_bootstrap_matrix, params=list(method ="pearson"))
+)
+
+weight_models_k_fold_list <- list(
+  "UBCF:Cosine:Center" = list(name="UBCF", data=weight_k_fold_matrix, params=list(method ="cosine")),
+  "UBCF:Pearson:Center" = list(name="UBCF", data=weight_k_fold_matrix, params=list(method ="pearson")),
+  "IBCF:Cosine:Center" = list(name="IBCF", data=weight_k_fold_matrix, params=list(method ="cosine")),
+  "IBCF:Pearson:Center" = list(name="IBCF", data=weight_k_fold_matrix, params=list(method ="pearson")),
+  "UBCF:Cosine:Z-Score" = list(name="UBCF", data=weight_k_fold_matrix, params=list(method ="cosine")),
+  "UBCF:Pearson:Z-Score" = list(name="UBCF", data=weight_k_fold_matrix, params=list(method ="pearson")),
+  "IBCF:Cosine:Z-Score" = list(name="IBCF", data=weight_k_fold_matrix, params=list(method ="cosine")),
+  "IBCF:Pearson:Z-Score" = list(name="IBCF", data=weight_k_fold_matrix, params=list(method ="pearson"))
+)
+```
+
+Come prima, addestriamo i modelli e generiamo l'output delle predizioni:
+```{r}
+weight_models_split_list <- trainModels(weight_models_split_list)
+weight_models_bootstrap_list <- trainModels(weight_models_bootstrap_list)
+weight_models_k_fold_list <- trainModels(weight_models_k_fold_list)
+
+weight_models_split_results <- data.frame(
+  rmse = sapply(weight_models_split_list, '[[', 'results.RMSE'),
+  mse = sapply(weight_models_split_list, '[[', 'results.MSE'),
+  mae = sapply(weight_models_split_list, '[[', 'results.MAE')
+)
+weight_models_bootstrap_results <- data.frame(
+  rmse = sapply(weight_models_bootstrap_list, '[[', 'results.RMSE'),
+  mse = sapply(weight_models_bootstrap_list, '[[', 'results.MSE'),
+  mae = sapply(weight_models_bootstrap_list, '[[', 'results.MAE')
+)
+weight_models_k_fold_results <- data.frame(
+  rmse = sapply(weight_models_k_fold_list, '[[', 'results.RMSE'),
+  mse = sapply(weight_models_k_fold_list, '[[', 'results.MSE'),
+  mae = sapply(weight_models_k_fold_list, '[[', 'results.MAE')
+)
+```
+Vediamo l'errore medio per i vari modelli:
+```{r}
+weight_models_split_results
+weight_models_bootstrap_results
+weight_models_k_fold_results
+```
+
+E calcoliamo la media dei modelli pesati:
+```{r}
+weight_models_mean_error <- data.frame(
+  rmse = c(
+    mean(weight_models_split_results[, 'rmse']),
+    mean(weight_models_bootstrap_results[, 'rmse']),
+    mean(weight_models_k_fold_results[, 'rmse'])
+  ),
+  mse = c(
+    mean(weight_models_split_results[, 'mse']),
+    mean(weight_models_bootstrap_results[, 'mse']),
+    mean(weight_models_k_fold_results[, 'mse'])
+  ),
+  mae = c(
+    mean(weight_models_split_results[, 'mae']),
+    mean(weight_models_bootstrap_results[, 'mae']),
+    mean(weight_models_k_fold_results[, 'mae'])
+  )
+)
+rownames(weight_models_mean_error) <- c('Split method', 'Bootstrap method', 'Cross validation method')
+
+weight_models_mean_error
+```
 
 Vedi altre risorse:  
 - [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)  
