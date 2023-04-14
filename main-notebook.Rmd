@@ -410,48 +410,59 @@ timestamp_matrix <- timestamp_normalize(timestamp_matrix)
 ```
 
 ```{r}
-# weight_normalize <- function(x, y, row = TRUE) {
-#   rc <- if (row) "row" else "col"
-# 
-#   if (!is.null(x@normalize[[rc]])) {
-#     warning("x was already normalized by ", rc ,"!")
-#     return(x)
-#   }
-# 
-#   normalize_utility <- function(utility_matrix, weights_matrix) {
-#   row_means <- rowMeans(utility_matrix, na.rm = TRUE)
-#   col_weights <- colSums(weights_matrix)
-#   normalized_matrix <- sweep(utility_matrix, 1, row_means, "-")
-#   normalized_matrix <- sweep(normalized_matrix, 2, col_weights, "/")
-# 
-#   
-#   means <- NULL
-#   weights <- NULL
-# 
-#   if (row) { ### row
-#     data <- t(x@data)
-#     means <- rowMeans(x)
-#     data@x <- data@x-rep(means, rowCounts(x))
-#     data <- t(data)
-# 
-#   } else { ### col
-#     data <- x@data
-#     means <- colMeans(x)
-#     data@x <- data@x-rep(means, colCounts(x))
-#   }
-#   
-#   data@x[data@x == 0] <- .Machine$double.xmin
-#   x@data <- data
-# 
-#   x@normalize[[rc]] <- list(method=methods[3],
-#     factors=list(means=means))
-#   
-#   return(x)
-# }
+weight_normalize <- function(x, y, row = TRUE) {
+  n_rows = nrow(x)
+  n_cols = ncol(x)
+  
+  if (n_rows != nrow(y)) {
+    warning("Matrixes must have same rows number")
+    return(x)
+  }
+  if (n_cols != ncol(y)) {
+    warning("Matrixes must have same columns number")
+    return(x)
+  }
+  
+  matrix_output <- matrix(NA, nrow = n_rows, ncol = n_cols)
+  rownames(matrix_output) <- rownames(x)
+  colnames(matrix_output) <- colnames(x)
+  
+  if (row) {
+    for (i in 1:n_rows) {
+      values_raw = x[i, ]
+      values = values_raw[!is.na(values_raw)]
+      weights_raw = y[i, ]
+      weights = weights_raw[!is.na(weights_raw)]
+      weight_mean = weighted.mean(values, weights)
+      
+      for (j in 1:n_cols) {
+        if (!is.na(x[i, j])) {
+         matrix_output[i, j] = x[i, j] - weight_mean
+        }
+      }
+    }
+  } else {
+    for (i in 1:n_cols) {
+      values_raw = x[, i]
+      values = values_raw[!is.na(values_raw)]
+      weights_raw = y[, i]
+      weights = weights_raw[!is.na(weights_raw)]
+      weight_mean = weighted.mean(values, weights)
+      
+      for (j in 1:n_rows) {
+        if (!is.na(x[j, i])) {
+         matrix_output[j, i] = x[j, i] - weight_mean
+        }
+      }
+    }
+  }
+  
+  return(matrix_output)
+}
 ```
 
 ```{r}
-# weighted_matrix <- weight_normalize(rating_matrix, timestamp_matrix)
+weighted_matrix <- weight_normalize(converted_matrix, timestamp_matrix)
 ```
 
 
