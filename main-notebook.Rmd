@@ -409,6 +409,52 @@ e applichiamola sulla matrice dei timestamp:
 timestamp_matrix <- timestamp_normalize(timestamp_matrix)
 ```
 
+```{r}
+# weight_normalize <- function(x, y, row = TRUE) {
+#   rc <- if (row) "row" else "col"
+# 
+#   if (!is.null(x@normalize[[rc]])) {
+#     warning("x was already normalized by ", rc ,"!")
+#     return(x)
+#   }
+# 
+#   normalize_utility <- function(utility_matrix, weights_matrix) {
+#   row_means <- rowMeans(utility_matrix, na.rm = TRUE)
+#   col_weights <- colSums(weights_matrix)
+#   normalized_matrix <- sweep(utility_matrix, 1, row_means, "-")
+#   normalized_matrix <- sweep(normalized_matrix, 2, col_weights, "/")
+# 
+#   
+#   means <- NULL
+#   weights <- NULL
+# 
+#   if (row) { ### row
+#     data <- t(x@data)
+#     means <- rowMeans(x)
+#     data@x <- data@x-rep(means, rowCounts(x))
+#     data <- t(data)
+# 
+#   } else { ### col
+#     data <- x@data
+#     means <- colMeans(x)
+#     data@x <- data@x-rep(means, colCounts(x))
+#   }
+#   
+#   data@x[data@x == 0] <- .Machine$double.xmin
+#   x@data <- data
+# 
+#   x@normalize[[rc]] <- list(method=methods[3],
+#     factors=list(means=means))
+#   
+#   return(x)
+# }
+```
+
+```{r}
+# weighted_matrix <- weight_normalize(rating_matrix, timestamp_matrix)
+```
+
+
 Vedi altre risorse:  
 - [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)  
 - [Data Mania](https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/)  
