@@ -5,19 +5,19 @@ output: html_notebook
 
 ### Introduzione
 I **sistemi di raccomandazione** sono dei sistemi software che permettono di predire le preferenze di un utente basandoci sulle preferenze espresse dall'utente in passato.  
-A differenza dei sistemi tradizionali, essi possono predire il gradimento dell'utente anche per oggetti rari, evitando il cosiddetto fenomeno **long-tail**.  
+A differenza dei sistemi tradizionali, essi possono predire il gradimento dell'utente anche per oggetti *rari*, evitando il cosiddetto fenomeno **long-tail**.  
 Un sistema di raccomandazione è strutturato in una matrice chiamata **matrice di utilità**, avente:  
 - nelle righe, gli utenti del sistema.  
 - nelle colonne, gli oggetti da valutare.  
-- nelle celle, la valutazione dell'oggetto nella colonna `j` relativa all'utente nella riga `i`.  
+- nelle celle, la valutazione dell'oggetto della colonna `j` relativa all'utente della riga `i`.  
 
 I sistemi di raccomandazione possono diversi in due categorie:  
 -  **content-based**: ad ogni utente è associato un profilo che verrà utilizzato per effettuare le predizioni sugli item.  
 - **collaborative-filtering**: le predizioni sugli item vengono fatte basandoci su utenti simili (nel caso di **user-based** collaborative filtering) oppure su item simili (nel caso di **item-based** collaborative filtering).  
 
 ### Obbiettivo
-Creeremo diversi sistemi di raccomandazione e ne confronteremo le prestazioni. Useremo anche un sistema personalizzato che tenga in considerazione delle data in cui è stata lasciata la valutazione.  
-Useremo questo [dataset](https://grouplens.org/datasets/movielens/1m/) per generare i sistemi. Al suo interno sono presenti due tabelle `.csv`:  
+Creeremo diversi sistemi di raccomandazione e ne confronteremo le prestazioni. Useremo anche un sistema personalizzato che tenga in considerazione del timestamp della valutazione per calcolare il valore finale.  
+Useremo il dataset [MovieLens](https://grouplens.org/datasets/movielens/1m/) per generare i sistemi. Al suo interno sono presenti due tabelle `.csv`:  
 - `movies.csv`: contiene l'elenco dei film, con i campi `movieId`, `title` e `genres`.  
 - `ratings.csv`: contiene l'elenco delle valutazione relative agli utenti, con i campi `userId`, `movieId`, `rating`, `timestamp`.  
 - `users.csv`: contiene l'elenco degli utenti e le loro informazioni, con i campi `userId`, `gender`, `age`, `occupation`, `zip`.  
@@ -34,7 +34,7 @@ library("reshape2")
 library("recommenderlab")
 library("sqldf")
 ```
-Adesso, carichiamo i dataset all'interno del progetto usando la funzione `read.csv`:
+Carichiamo i dataset all'interno del progetto usando la funzione `read.csv`:
 ```{r}
 movie_dataset <- read.csv("movie-dataset/movies.csv",  sep = "+")
 rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = "+")
@@ -44,10 +44,10 @@ rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = "+")
 
 Una volta caricati i dati, verifichiamone l'**integrità**.  
 L'integrità dei dati è essenziale per garantire l'affidabilità dei risultati dell'analisi.  
-La presenza di dati incompleti, come i valori `NA`, potrebbero influenzare la validità dei risultati dell'analisi.  
-All'interno di R è presente la funzione `complete.cases` che restituisce una matrice di valori booleani con:  
-- TRUE, nel caso in cui i dati sono completi.  
-- FALSE, nel caso in cui i dati sono incompleti.  
+La presenza di dati incompleti, come i valori `NA`, potrebbero influenzare negativamente i risultati dell'analisi.  
+All'interno di R, è presente la funzione `complete.cases` che restituisce una struttura dati popolata da valori booleani con:  
+- `TRUE`, nel caso in cui i dati sono completi.  
+- `FALSE`, nel caso in cui i dati sono incompleti.  
 Questa funzione può essere usata per effettuare una **pulizia** sui dati:
 ```{r}
 movie_dataset <- movie_dataset[complete.cases(movie_dataset), ]
@@ -69,7 +69,6 @@ rating_dataset <- sqldf(
    WHERE count_user > 300 AND count_movie > 600
   "
 )
-given <- 240
 ```
 
 ### Analisi del dataset
@@ -87,15 +86,17 @@ users_dataset <- sqldf("
 ")
 ```
 
-Una volta rimosso dal dataset degli utenti che non hanno fatto recensito abbastanza film, aggiungiamo al data frame le seguenti colonne:  
+Una volta rimossi dal dataset gli utenti che non hanno fatto recensito abbastanza film, aggiungiamo al data frame le seguenti colonne:  
 - `mean`, contiene la media delle valutazione lasciate dall'utente.  
 - `weighted_mean`, contiene la media pesata con il timestamp delle valutazioni lasciate dall'utente.  
 - `ratings_range`, contiene la differenza fra la prima valutazione e l'ultima valutazione lasciata dall'utente.  
 - `mean_diff`, contiene la differenza fra la media aritmetica e la media pesata delle valutazioni.  
 
-Gli ultimi due campi ci permetteranno di dimostrare se esiste una correlazione fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione.  
+Gli ultimi due campi ci permetteranno di dimostrare se esiste una correlazione tra:  
+- la differenze fra le media aritmetica e la media pesata.  
+- l'arco temporale fra la prima e l'ultima valutazione.  
 In pratica, vogliamo verificare se in un intervallo temporale più ampio, la differenza fra la media aritmetica e quella pesata aumenta.
-
+Creiamo quindi le colonne ed aggiungiamole al dataset:
 ```{r}
 users_dataset['mean'] <- replicate(nrow(users_dataset), 0)
 users_dataset['weigthed_mean'] <- replicate(nrow(users_dataset), 0)
@@ -103,37 +104,36 @@ users_dataset['ratings_range'] <- replicate(nrow(users_dataset), 0)
 users_dataset['mean_diff'] <- replicate(nrow(users_dataset), 0)
 ```
 
-Una volta aggiunti i campi, effettuiamo tutti i calcoli necessari per popolare i campi:
+Una volta aggiunti i campi, effettuiamo tutti i calcoli necessari per popolare i campi.  
+Per calcolare la media pesata, abbiamo bisogno di una funzione che mappi i timestamp in un intervallo più piccolo di quello esistente. La funzione `map_range`, dato un minimo ed un massimo, converte i valori nell'intervallo assegnandogli un valore fra `0.5` e `1.5`. Questo ci permette di assegnare un peso nullo, ovvero `1`, alle valutazione fatte a metà nell'arco temporale. Creiamo quindi la funzione:
 ```{r}
 map_range <- function(x, min_val, max_val, new_min = 0.5, new_max = 1.5) {
   y <- (x - min_val) * (new_max - new_min) / (max_val - min_val) + new_min
   return(y)
 }
+```
 
-
+Effettuiamo dunque i calcoli effettivi, assegnando i valori `mean`, `weigthed_mean`, `ratings_range` e `mean_diff`:
+```{r}
 for (user_index in 1:nrow(users_dataset)) {
   user <- users_dataset[user_index, 'userId']
   single_user_dataset <- rating_dataset[rating_dataset[, 'userId'] == user, ]
   single_user_first_rating <- min(single_user_dataset[, 'timestamp'])
   single_user_last_rating <- max(single_user_dataset[, 'timestamp'])
-  single_user_time_range <- single_user_last_rating - single_user_first_rating
   single_user_ratings <- single_user_dataset[, 'rating']
   single_user_weigths <- sapply(
     single_user_dataset[, 'timestamp'], 
     function (x) map_range(x, single_user_first_rating, single_user_last_rating)
   )
-  single_user_mean <- mean(single_user_ratings)
-  single_user_weight_mean <- weighted.mean(single_user_ratings, single_user_weigths)
-  single_user_mean_diff <- abs(single_user_weight_mean - single_user_mean)
-  users_dataset[user_index, 'mean'] <- single_user_mean
-  users_dataset[user_index, 'weigthed_mean'] <- single_user_weight_mean
-  users_dataset[user_index, 'ratings_range'] <- single_user_time_range
-  users_dataset[user_index, 'mean_diff'] <- single_user_mean_diff
+  users_dataset[user_index, 'mean'] <- mean(single_user_ratings)
+  users_dataset[user_index, 'weigthed_mean'] <- weighted.mean(single_user_ratings, single_user_weigths)
+  users_dataset[user_index, 'ratings_range'] <- abs(single_user_weight_mean - single_user_mean)
+  users_dataset[user_index, 'mean_diff'] <- single_user_last_rating - single_user_first_rating
 }
 ```
 
 Dopo aver effettuato tutti i calcoli, vediamo i risultati.
-Il primo grafico che vediamo è relativo alle valutazioni all'interno del dataset.
+Il primo grafico che vediamo è relativo alla frequenza delle valutazioni all'interno del dataset.
 ```{r}
 hist(
   rating_dataset[, 'rating'],
@@ -145,7 +145,7 @@ hist(
 )
 ```
 
-I prossimi due grafici che vedremo rispettivamente la media aritmetica e la media pesata delle valutazioni:
+I prossimi due grafici sono relativi alla frequenza della media aritmetica e della media pesata per utente:
 ```{r}
 par(mfrow = c(1,2))
 hist(
@@ -165,10 +165,9 @@ hist(
   border = '#B2182B'
 )
 ```
-Osservando i due grafici, notiamo che i valori assegnati alla media pesata sono  tendenzialmente più bassi.  
+Osservando i due grafici, notiamo che i valori assegnati alla media pesata sono tendenzialmente più bassi.  
 
-Il terzo grafico ci mostra l'andamento fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione.  
-
+Il terzo grafico ci mostra l'andamento fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione. Verifichiamo quindi se esiste la correlazione sopra citata:
 ```{r}
 plot(
   x = users_dataset[, 'ratings_range'], 
@@ -185,10 +184,9 @@ Dal grafico, notiamo che i valori si concentrano principalmente sulla parte bass
 ### Creazione dei sistemi di raccomandazione
 
 Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della matrice di utilità.  
-Essendo il nostro dataset organizzato per righe, è necessario effettuare una conversione.  
+Essendo il nostro dataset organizzato in una lista, è necessario effettuare una conversione.  
 Nel pacchetto reshape2 è inclusa la funzione `acast` che prendendo in input le liste di valori, la formula per creare righe / colonne e il nome della lista relativa valore da inserire nelle celle, ci restituisce una matrice.  
-Nel nostro caso, `rating_dataset` rappresenta il dataset con tutte le colonne, `userId~movieId`rappresenta la formula per ottenere rispettivamente nelle righe gli utenti e nelle colonne i film, il valore `rating` rappresenta il valore nelle celle.   
-
+Nel nostro caso, `rating_dataset` rappresenta il dataset con tutte le righe, `userId~movieId`rappresenta la formula per ottenere rispettivamente nelle righe gli utenti e nelle colonne i film, il valore `rating` rappresenta il valore nelle celle.  
 Utilizziamola nel nostro caso:
 ```{r}
 converted_matrix <- acast(rating_dataset, userId~movieId, value.var = "rating")
@@ -234,27 +232,27 @@ Dopo aver generato i possibili modi per addestrare il sistema di raccomandazione
 - `method`, indica la formula matematica usata per misurare la similarità fra due insiemi di dati.  
 - `normalize`, indica la formula matematica usata per normalizzare la matrice di utilità del sistema di raccomandazione.  
 
-Come tipologia di sistemi, quindi come `name`, useremo:  
+Come tipologia di sistemi, quindi come parametro `name`, useremo:  
 - **UBCF** (User Based Collaborative Filtering).  
 - **IBCF** (Item Based Collaborative Filtering).  
 
 Come formula per valutare la similarità fra due insieme di dati, useremo:  
-- **Similarità del coseno**:
+- **Similarità del coseno** (`cosine`):
 $$
 \text{cossim}(\mathbf{x}, \mathbf{y}) = \frac{\mathbf{x} \cdot \mathbf{y}}{|\mathbf{x}| |\mathbf{y}|}
 $$
-- **Correlazione di Pearson**:
+- **Correlazione di Pearson** (`person`):
 $$
 \text{correlation}(X, Y) = \frac{\text{cov}(X, Y)}{\text{std}(X) \cdot \text{std}(Y)}
 $$
 Entrambe le misure ritornano un valore da -1 ad 1, dove al valore -1 corrisponde una similarità nulla, mentre al valore 1 corrisponde una similarità totale.
 
-Come misure di normalizzazione, quindi come `normalize`, useremo:  
-- **Center**:
+Come misure di normalizzazione, quindi come parametro `normalize`, useremo:  
+- **Center** (`center`):
 $$
 r'_{u,i} = r_{u,i} - \mu_u
 $$
-- **Z-Score**:
+- **Z-Score** (`z-score`):
 $$
 r'_{u,i} = \frac{r_{u,i} - \mu_u}{\sigma_u}
 $$
@@ -296,7 +294,8 @@ models_k_fold_list <- list(
 )
 ```
 
-Creiamo una funzione per addestrare il sistema e valutarne gli errori sul test set:
+Creiamo una funzione per addestrare il sistema e valutarne gli errori sul test set.  
+Questa funzione, dato il training set, cerca di capire la media e vede, per tutti i ratings, la differenza fra il valore calcolato con i dati del training set ed il dato originale presente nel test set.
 ```{r}
 trainModel <- function(settings) {
  model <- Recommender(getData(settings$data, "train"), settings$name, parameter = settings$params)
@@ -318,15 +317,14 @@ trainModels <- function(models_list) {
 }
 ```
 
-Richiamiamola sulle liste generate:
+E richiamiamola sulle liste generate:
 ```{r}
 models_split_list <- trainModels(models_split_list)
 models_bootstrap_list <- trainModels(models_bootstrap_list)
 models_k_fold_list <- trainModels(models_k_fold_list)
 ```
 
-
-Organizziamo i dati salvati dall'addestramento in un data frame:
+Una volta addestrati tutti i sistemi, organizziamo il dati relativi agli errori in un data frame:
 ```{r}
 models_split_results <- data.frame(
   rmse = sapply(models_split_list, '[[', 'results.RMSE'),
