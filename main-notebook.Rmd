@@ -592,7 +592,7 @@ Finora, abbiamo trattato solo sistemi di raccomandazione con valutazione reali, 
 
 Per convertire i valori dal range $[0, 5]$ al range $[0, 1]$, dobbiamo utilizzare una funzione che la libreria `reccomenderlab` ci mette a disposizione, chiamata `binarize`:
 ```{r}
-binary_matrix <- binarize(rating_matrix, minRating = 3)
+binary_matrix <- binarize(rating_matrix, minRating = 4)
 ```
 Il parametro `minRating` indica come devono essere convertiti i valori. Dato che esso è impostato a `3`, i valori saranno convertiti in questo modo:  
 - $\lt 3 \rightarrow 0$  
@@ -704,9 +704,69 @@ binary_models_split_results
 binary_models_bootstrap_results
 binary_models_k_fold_results
 ```
+Facciamo la media e mettiamo tutto in unico data frame:
+```{r}
+binary_models_mean_error <- data.frame(
+  tp = c(
+    mean(binary_models_split_results[, 'tp']),
+    mean(binary_models_bootstrap_results[, 'tp']),
+    mean(binary_models_k_fold_results[, 'tp'])
+  ),
+  fp = c(
+    mean(binary_models_split_results[, 'fp']),
+    mean(binary_models_bootstrap_results[, 'fp']),
+    mean(binary_models_k_fold_results[, 'fp'])
+  ),
+  tn = c(
+    mean(binary_models_split_results[, 'tn']),
+    mean(binary_models_bootstrap_results[, 'tn']),
+    mean(binary_models_k_fold_results[, 'tn'])
+  ),
+  fn = c(
+    mean(binary_models_split_results[, 'fn']),
+    mean(binary_models_bootstrap_results[, 'fn']),
+    mean(binary_models_k_fold_results[, 'fn'])
+  ),
+  precision = c(
+    mean(binary_models_split_results[, 'precision']),
+    mean(binary_models_bootstrap_results[, 'precision']),
+    mean(binary_models_k_fold_results[, 'precision'])
+  ),
+  recall = c(
+    mean(binary_models_split_results[, 'recall']),
+    mean(binary_models_bootstrap_results[, 'recall']),
+    mean(binary_models_k_fold_results[, 'recall'])
+  ),
+  tpr = c(
+    mean(binary_models_split_results[, 'tpr']),
+    mean(binary_models_bootstrap_results[, 'tpr']),
+    mean(binary_models_k_fold_results[, 'tpr'])
+  ),
+  fpr = c(
+    mean(binary_models_split_results[, 'fpr']),
+    mean(binary_models_bootstrap_results[, 'fpr']),
+    mean(binary_models_k_fold_results[, 'fpr'])
+  )
+)
+rownames(binary_models_mean_error) <- c('Split method', 'Bootstrap method', 'Cross validation method')
+```
+
+E confrontiamo i risultati con un grafico:
+```{r}
+plot(
+  binary_models_mean_error[, 'fpr'], 
+  binary_models_mean_error[, 'tpr'],
+  pch = 16, 
+  xlab = 'FPR',
+  ylab = 'TPR',
+  main = 'FPR / TPR graphics',
+  col = '#F4A582'
+)
+```
+
 
 Vedi altre risorse:  
-- [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)  
+- [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/) 
 - [Data Mania](https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/)  
 - [Res 1](https://rpubs.com/robertwsellers/IS643_Project_2)   
 - [Res 2](https://rpubs.com/dhairavc/628480)  
