@@ -585,6 +585,126 @@ rownames(weight_models_mean_error) <- c('Split method', 'Bootstrap method', 'Cro
 weight_models_mean_error
 ```
 
+### Binarizzazione
+Finora, abbiamo trattato solo sistemi di raccomandazione con valutazione reali, dove la valutazione vanno da `0.5` (voto minimo) a `5` (voto massimo). Adesso trattiamo sistemi di raccomandazione in cui le valutazioni sono **binarie**, cioè le valutazioni possono avere valore:  
+- `0`: valutazione negativa (l'utente non gradisce l'item)  
+- `1`: valutazione positiva (l'utente gradisce l'item)  
+
+Per convertire i valori dal range $[0, 5]$ al range $[0, 1]$, dobbiamo utilizzare una funzione che la libreria `reccomenderlab` ci mette a disposizione, chiamata `binarize`:
+```{r}
+binary_matrix <- binarize(rating_matrix, minRating = 3)
+```
+Il parametro `minRating` indica come devono essere convertiti i valori. Dato che esso è impostato a `3`, i valori saranno convertiti in questo modo:  
+- $\lt 3 \rightarrow 0$  
+- $\ge 3 \rightarrow 1$  
+
+Ripetiamo tutte le operazione precedenti utilizzando la matrice d'utilità ottenuta con la media pesata al posto della matrice originale:
+```{r}
+binary_split_matrix <- evaluationScheme(
+  data = binary_matrix, 
+  method = "split", 
+  train = 0.8, 
+  given = given, 
+  goodRating = 3
+)
+binary_bootstrap_matrix <- evaluationScheme(
+  data = binary_matrix, 
+  method = "bootstrap",
+  given = given, 
+  goodRating = 3
+)
+binary_k_fold_matrix <- evaluationScheme(
+  data = binary_matrix, 
+  method = "cross-validation",
+  k = 8, 
+  given = given, 
+  goodRating = 3
+)
+```
+
+Generiamo i modelli pesati. In questo caso, rimuoviamo il parametro `normalize` dato che stiamo lavorando con una matrice già normalizzata:
+```{r}
+binary_models_split_list <- list(
+  "UBCF" = list(name="UBCF", data=binary_split_matrix, params=list(method ="jaccard")),
+  "IBCF" = list(name="IBCF", data=binary_split_matrix, params=list(method ="jaccard"))
+)
+
+binary_models_bootstrap_list <- list(
+  "UBCF" = list(name="UBCF", data=binary_bootstrap_matrix, params=list(method ="jaccard")),
+  "IBCF" = list(name="IBCF", data=binary_bootstrap_matrix, params=list(method ="jaccard"))
+)
+
+binary_models_k_fold_list <- list(
+  "UBCF" = list(name="UBCF", data=binary_k_fold_matrix, params=list(method ="jaccard")),
+  "IBCF" = list(name="IBCF", data=binary_k_fold_matrix, params=list(method ="jaccard"))
+)
+```
+
+```{r}
+binaryTrainModel <- function(settings) {
+ model <- Recommender(getData(settings$data, "train"), settings$name, parameter = settings$params)
+ test <- predict(model, getData(settings$data, "known"), type="topNList")
+ error <- calcPredictionAccuracy(test, getData(settings$data, "unknown"), given = 60)
+ return(error)
+}
+```
+
+Creiamo una funzione per addestrare tutti i sistemi di una lista:
+```{r}
+binaryTrainModels <- function(models_list) {
+  for (model_name in names(models_list)) {
+    settings <- models_list[[model_name]]
+    model_error <- binaryTrainModel(settings)
+    models_list[[model_name]] <- c(settings, results = model_error)
+  }
+  return(models_list)
+}
+```
+
+Come prima, addestriamo i modelli e generiamo l'output delle predizioni:
+```{r}
+binary_models_split_list <- binaryTrainModels(binary_models_split_list)
+binary_models_bootstrap_list <- binaryTrainModels(binary_models_bootstrap_list)
+binary_models_k_fold_list <- binaryTrainModels(binary_models_k_fold_list)
+
+binary_models_split_results <- data.frame(
+  tp = sapply(binary_models_split_list, '[[', 'results.TP'),
+  fp = sapply(binary_models_split_list, '[[', 'results.FP'),
+  tn = sapply(binary_models_split_list, '[[', 'results.TN'),
+  fn = sapply(binary_models_split_list, '[[', 'results.FN'),
+  precision = sapply(binary_models_split_list, '[[', 'results.precision'),
+  recall = sapply(binary_models_split_list, '[[', 'results.recall'),
+  tpr = sapply(binary_models_split_list, '[[', 'results.TPR'),
+  fpr = sapply(binary_models_split_list, '[[', 'results.FPR')
+)
+binary_models_bootstrap_results <- data.frame(
+  tp = sapply(binary_models_bootstrap_list, '[[', 'results.TP'),
+  fp = sapply(binary_models_bootstrap_list, '[[', 'results.FP'),
+  tn = sapply(binary_models_bootstrap_list, '[[', 'results.TN'),
+  fn = sapply(binary_models_bootstrap_list, '[[', 'results.FN'),
+  precision = sapply(binary_models_bootstrap_list, '[[', 'results.precision'),
+  recall = sapply(binary_models_bootstrap_list, '[[', 'results.recall'),
+  tpr = sapply(binary_models_bootstrap_list, '[[', 'results.TPR'),
+  fpr = sapply(binary_models_bootstrap_list, '[[', 'results.FPR')
+)
+binary_models_k_fold_results <- data.frame(
+  tp = sapply(binary_models_k_fold_list, '[[', 'results.TP'),
+  fp = sapply(binary_models_k_fold_list, '[[', 'results.FP'),
+  tn = sapply(binary_models_k_fold_list, '[[', 'results.TN'),
+  fn = sapply(binary_models_k_fold_list, '[[', 'results.FN'),
+  precision = sapply(binary_models_k_fold_list, '[[', 'results.precision'),
+  recall = sapply(binary_models_k_fold_list, '[[', 'results.recall'),
+  tpr = sapply(binary_models_k_fold_list, '[[', 'results.TPR'),
+  fpr = sapply(binary_models_k_fold_list, '[[', 'results.FPR')
+)
+```
+Vediamo l'errore medio per i vari modelli:
+```{r}
+binary_models_split_results
+binary_models_bootstrap_results
+binary_models_k_fold_results
+```
+
 Vedi altre risorse:  
 - [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/)  
 - [Data Mania](https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/)  
