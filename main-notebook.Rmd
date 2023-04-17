@@ -374,11 +374,11 @@ models_mean_error
 ### Normalizzazione temporale
 All'interno di un sistema di raccomandazione, potremmo anche normalizzare secondo una funzione personalizzata. Come abbiamo visto prima, con l'utilizzo dei timestamp, possiamo ricavare una media pesata in cui diamo un peso minore alla valutazione meno recenti ed un peso maggiore alle valutazione più recenti.  
 Affinché R possa creare un sistema personalizzato, occorre creare una funzione `normalize` personalizzata che chiameremo `weight_normalize`.  
-La funzione necessita di un matrice di timestamp, da usare come media pesata:
+La funzione necessita di un matrice di timestamp, da usare per calcolare la media pesata:
 ```{r}
 timestamp_matrix <- acast(rating_dataset, userId~movieId, value.var = "timestamp")
 ```
-Inoltre, è necessario che i timestamp vadano normalizzati all'interno di un certo intervallo. Il nostro intervallo andrà da `0.5` a `1.5`. Per effettuare questa operazione, creiamo una funzione chiamata `timestamp_normalize`:
+Inoltre, è necessario che i timestamp vadano normalizzati all'interno di un certo intervallo, come fatto prima. Il nostro intervallo andrà da `0.5` a `1.5`. Per effettuare questa operazione, creiamo una funzione chiamata `timestamp_normalize` che per ogni riga, normalizzi i valori secondo il minimo ed il massimo della stessa:
 ```{r}
 timestamp_normalize <- function(matrix_input) {
   n_rows <- nrow(matrix_input)
@@ -402,12 +402,12 @@ timestamp_normalize <- function(matrix_input) {
 
 ```
 
-e applichiamola sulla matrice dei timestamp:
+Dopo averla creata, applichiamola sulla matrice dei timestamp:
 ```{r}
 timestamp_matrix <- timestamp_normalize(timestamp_matrix)
 ```
 
-A questo punto, possiamo creare la funzione `weight_normalize` che genera la media pesata e ritorna una matrice normalizzata subito utilizzabile:
+A questo punto, possiamo creare la funzione `weight_normalize` che genera la media pesata e ritorna una matrice già normalizzata, quindi in cui ad ogni valore è già stata sottratta la media calcolata, subito utilizzabile:
 ```{r}
 weight_normalize <- function(x, y, row = TRUE) {
   n_rows = nrow(x)
@@ -494,7 +494,7 @@ weight_k_fold_matrix <- evaluationScheme(
 )
 ```
 
-Generiamo i modelli pesati. In questo caso, rimuoviamo il parametro `normalize` dato che stiamo lavorando con una matrice già normalizzata:
+Generiamo i modelli pesati. In questo caso, rimuoviamo il parametro `normalize` dato che la matrice risulta già normalizzata:
 ```{r}
 weight_models_split_list <- list(
   "UBCF:Cosine:Center" = list(name="UBCF", data=weight_split_matrix, params=list(method ="cosine")),
@@ -588,9 +588,9 @@ Finora, abbiamo trattato solo sistemi di raccomandazione con valutazione reali, 
 - `0`: valutazione negativa (l'utente non gradisce l'item)  
 - `1`: valutazione positiva (l'utente gradisce l'item)  
 
-Per convertire i valori dal range $[0, 5]$ al range $[0, 1]$, dobbiamo utilizzare una funzione che la libreria `reccomenderlab` ci mette a disposizione, chiamata `binarize`:
+Per convertire i valori dal range $[0, 5]$ al range $(0, 1)$, dobbiamo utilizzare una funzione che la libreria `reccomenderlab` ci mette a disposizione, chiamata `binarize`:
 ```{r}
-binary_matrix <- binarize(rating_matrix, minRating = 4)
+binary_matrix <- binarize(rating_matrix, minRating = 3)
 ```
 Il parametro `minRating` indica come devono essere convertiti i valori. Dato che esso è impostato a `3`, i valori saranno convertiti in questo modo:  
 - $\lt 3 \rightarrow 0$  
@@ -620,7 +620,12 @@ binary_k_fold_matrix <- evaluationScheme(
 )
 ```
 
-Generiamo i modelli pesati. In questo caso, rimuoviamo il parametro `normalize` dato che stiamo lavorando con una matrice già normalizzata:
+Generiamo i modelli binari. In questo caso, l'unico parametro che possiamo impostare è la misura con cui gli elementi vengono classificati come simili. Tale misura è detta **coefficiente di similarità di Jaccard** ed è calcolato secondo la formula:
+$$
+\text{Jaccard}(U,V) = \frac{|U \cap V|}{|U \cup V|}
+$$
+Dati due insiemi, $U$ e $V$, calcola il rapporto fra gli elementi in comune e quelli totali. Se questo valore supera una certa soglia, allora due elementi sono detti come simili.  
+Impostiamola dunque come parametro per tutti i modelli:
 ```{r}
 binary_models_split_list <- list(
   "UBCF" = list(name="UBCF", data=binary_split_matrix, params=list(method ="jaccard")),
@@ -638,16 +643,17 @@ binary_models_k_fold_list <- list(
 )
 ```
 
+Creiamo una funzione che addestra unicamente i modelli binari. A differenza della funzione precedente, essa calcola solo i primi `n` elementi (dove $n = 10$) più simili.
 ```{r}
 binaryTrainModel <- function(settings) {
  model <- Recommender(getData(settings$data, "train"), settings$name, parameter = settings$params)
  test <- predict(model, getData(settings$data, "known"), type="topNList")
- error <- calcPredictionAccuracy(test, getData(settings$data, "unknown"), given = 60)
+ error <- calcPredictionAccuracy(test, getData(settings$data, "unknown"), given = 240)
  return(error)
 }
 ```
 
-Creiamo una funzione per addestrare tutti i sistemi di una lista:
+Creiamo una funzione per addestrare tutti i sistemi binari di una lista:
 ```{r}
 binaryTrainModels <- function(models_list) {
   for (model_name in names(models_list)) {
@@ -659,7 +665,12 @@ binaryTrainModels <- function(models_list) {
 }
 ```
 
-Come prima, addestriamo i modelli e generiamo l'output delle predizioni:
+Come prima, addestriamo i modelli e generiamo l'output delle predizioni. Per i modelli binari, i risultati sono strutturati in maniera diversa. Infatti, non sono presenti misure che calcolano la differenza fra il valore originale e quello predetto, ma sono presenti queste misure:  
+- TP, True Positive, cioè gli elementi che sono stati classificati correttamente come positivi.  
+- FP, False Positive, cioè gli elementi che sono stati classificati come positivi, ma che in realtà sono negativi.  
+- TN, True Negative, cioè gli elementi che sono stati classificati correttamente come negativi.  
+- FN, False Negative, cioè gli elementi che sono stati classificati come negativi, ma che in realtà sono positivi.  
+Da questi quattro valori, derivano poi tutte le altre misure, come `precision`, `recall`, `True Positive Rate` e `False Positive Rate`.
 ```{r}
 binary_models_split_list <- binaryTrainModels(binary_models_split_list)
 binary_models_bootstrap_list <- binaryTrainModels(binary_models_bootstrap_list)
@@ -696,13 +707,13 @@ binary_models_k_fold_results <- data.frame(
   fpr = sapply(binary_models_k_fold_list, '[[', 'results.FPR')
 )
 ```
-Vediamo l'errore medio per i vari modelli:
+Vediamo gli errori per i vari modelli:
 ```{r}
 binary_models_split_results
 binary_models_bootstrap_results
 binary_models_k_fold_results
 ```
-Facciamo la media e mettiamo tutto in unico data frame:
+E calcoliamo la media:
 ```{r}
 binary_models_mean_error <- data.frame(
   tp = c(
@@ -749,7 +760,7 @@ binary_models_mean_error <- data.frame(
 rownames(binary_models_mean_error) <- c('Split method', 'Bootstrap method', 'Cross validation method')
 ```
 
-E confrontiamo i risultati con un grafico:
+Infine, confrontiamo i risultati con un grafico:
 ```{r}
 plot(
   binary_models_mean_error[, 'fpr'], 
@@ -761,12 +772,3 @@ plot(
   col = '#F4A582'
 )
 ```
-
-
-Vedi altre risorse:  
-- [Reccomendation 101](https://www.r-bloggers.com/2014/12/recommender-systems-101-a-step-by-step-practical-example-in-r/) 
-- [Data Mania](https://www.data-mania.com/blog/how-to-build-a-recommendation-engine-in-r/)  
-- [Res 1](https://rpubs.com/robertwsellers/IS643_Project_2)   
-- [Res 2](https://rpubs.com/dhairavc/628480)  
-- [Res 3](https://www.linkedin.com/pulse/create-recommendation-engine-using-r-simple-steps-minta-thomas/)  
-- [Weigth median](https://stats.stackexchange.com/questions/196653/assigning-more-weight-to-more-recent-observations-in-regression)
