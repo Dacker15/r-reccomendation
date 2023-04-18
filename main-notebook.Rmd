@@ -4,27 +4,30 @@ output: html_notebook
 ---
 
 ### Introduzione
-I **sistemi di raccomandazione** sono dei sistemi software che permettono di predire le preferenze di un utente basandoci sulle preferenze espresse dall'utente in passato.  
-A differenza dei sistemi tradizionali, essi possono predire il gradimento dell'utente anche per oggetti *rari*, evitando il cosiddetto fenomeno **long-tail**.  
+I **sistemi di raccomandazione** sono dei sistemi software che permettono di predire le preferenze di un utente basandoci sui dati raccolti in passato.  
+A differenza dei sistemi tradizionali, essi possono predire il gradimento dell'utente anche per oggetti meno popolari, catturando il cosiddetto fenomeno **long-tail**.  
 Un sistema di raccomandazione è strutturato in una matrice chiamata **matrice di utilità**, avente:  
 - nelle righe, gli utenti del sistema.  
 - nelle colonne, gli oggetti da valutare.  
-- nelle celle, la valutazione dell'oggetto della colonna `j` relativa all'utente della riga `i`.  
+- nelle celle, la valutazione dell'oggetto della colonna `j-esima` relativa all'utente della riga `i-esima`.  
 
-I sistemi di raccomandazione possono diversi in due categorie:  
--  **content-based**: ad ogni utente è associato un profilo che verrà utilizzato per effettuare le predizioni sugli item.  
-- **collaborative-filtering**: le predizioni sugli item vengono fatte basandoci su utenti simili (nel caso di **user-based** collaborative filtering) oppure su item simili (nel caso di **item-based** collaborative filtering).  
+I sistemi di raccomandazione possono dividersi in due categorie.  
+La prima categoria contiene i sistemi di raccomandazione **content-based** che utilizzano le informazioni sulle proprietà degli item per generare un profilo di ogni item. Inoltre, mantengono un profilo dell'utente che riflette le sue preferenze in base alle proprietà degli item che ha già valutato in passato. Per suggerire nuovi item all'utente, il sistema calcola la similarità tra il profilo dell'utente e quello degli item presenti ancora da valutare, e suggerisce gli item che presentano la maggiore somiglianza. Le predizioni sugli item vengono quindi effettuate sulla base della corrispondenza tra le proprietà degli item suggeriti e il profilo dell'utente.  
+La seconda categoria contiene i sistemi **collaborative-filtering** che utilizzano le informazioni sulle interazioni passate degli utenti con gli item per generare raccomandazioni personalizzate. In particolare, questi sistemi possono essere basati sulla similarità tra gli utenti (user-based collaborative filtering) o tra gli item (item-based collaborative filtering).  
+Nel caso dell'user-based collaborative filtering, le predizioni sugli item per un utente vengono fatte basandosi sull'esperienza degli altri utenti simili a lui. Questo viene fatto calcolando la similarità tra il profilo di gradimento dell'utente corrente e quello degli altri utenti, e utilizzando queste informazioni per generare una lista di raccomandazioni personalizzate.  
+Nel caso dell'item-based collaborative filtering, invece, le predizioni sugli item vengono fatte basandosi sulla similarità tra gli item presenti nel catalogo. Il sistema cerca gli item che sono stati graditi da utenti simili a quello corrente, e utilizza queste informazioni per generare una lista di raccomandazioni personalizzate.  
+In entrambi i casi, i sistemi di raccomandazione collaborative filtering sfruttano la conoscenza delle preferenze degli utenti per generare raccomandazioni personalizzate, senza la necessità di conoscere dettagliate informazioni sulle proprietà degli item.
 
-### Obbiettivo
-Creeremo diversi sistemi di raccomandazione e ne confronteremo le prestazioni. Useremo anche un sistema personalizzato che tenga in considerazione del timestamp della valutazione per calcolare il valore finale.  
-Useremo il dataset [MovieLens](https://grouplens.org/datasets/movielens/1m/) per generare i sistemi. Al suo interno sono presenti due tabelle `.csv`:  
+### Obiettivo
+Creeremo diversi sistemi di raccomandazione e ne confronteremo le prestazioni. Useremo anche diverse varianti fra cui alcune che normalizzano i rating degli item secondo una media pesata ed altre varianti che usano rating binari, dove i valori assegnati ai rating sono semplicemente `0/1`.  
+Useremo il dataset [MovieLens](https://grouplens.org/datasets/movielens/1m/) per generare i sistemi. Al suo interno sono presenti tre tabelle `.csv`:  
 - `movies.csv`: contiene l'elenco dei film, con i campi `movieId`, `title` e `genres`.  
 - `ratings.csv`: contiene l'elenco delle valutazione relative agli utenti, con i campi `userId`, `movieId`, `rating`, `timestamp`.  
 - `users.csv`: contiene l'elenco degli utenti e le loro informazioni, con i campi `userId`, `gender`, `age`, `occupation`, `zip`.  
 
 ### Preparazione dell'ambiente
 All'interno del nostro progetto, useremo diverse librerie:  
-- [`reshape2`](https://cran.r-project.org/web/packages/reshape2/index.html), permette di creare un data frame oppure una matrice partendo da una lista.  
+- [`reshape2`](https://cran.r-project.org/web/packages/reshape2/index.html), permette di creare data frame oppure matrici partendo da una lista.  
 - [`reccomenderlab`](https://cran.r-project.org/web/packages/recommenderlab/index.html), permette la creazione e la valutazione dei sistemi di raccomandazione.  
 - [`sqldf`](https://cran.r-project.org/web/packages/sqldf/index.html), permette la manipolazione di data frame usando la sintassi SQL.  
 
@@ -40,15 +43,15 @@ movie_dataset <- read.csv("movie-dataset/movies.csv",  sep = "+")
 rating_dataset <- read.csv("movie-dataset/ratings.csv", sep = "+")
 ```
 
-### Pulizia del dataset
+### Pulizia dei dati
 
 Una volta caricati i dati, verifichiamone l'**integrità**.  
 L'integrità dei dati è essenziale per garantire l'affidabilità dei risultati dell'analisi.  
-La presenza di dati incompleti, come i valori `NA`, potrebbero influenzare negativamente i risultati dell'analisi.  
+La presenza di dati incompleti, come i valori `NA`, potrebbero influenzare negativamente i risultati.  
 All'interno di R, è presente la funzione `complete.cases` che restituisce una struttura dati popolata da valori booleani con:  
-- `TRUE`, nel caso in cui i dati sono completi.  
-- `FALSE`, nel caso in cui i dati sono incompleti.  
-Questa funzione può essere usata per effettuare una **pulizia** sui dati:
+- `TRUE`, nel caso in cui i dati sono popolati.  
+- `FALSE`, nel caso in cui i dati non sono popolati.  
+Questa funzione può essere usata per effettuare una **pulizia** sul data frame:
 ```{r}
 movie_dataset <- movie_dataset[complete.cases(movie_dataset), ]
 rating_dataset <- rating_dataset[complete.cases(rating_dataset), ]
@@ -58,7 +61,7 @@ Scartati i dati nulli o incompleti, prendiamo in considerazione solo una porzion
 - gli utenti che hanno valutato **almeno 300 film**.  
 - i film che sono stati valutati **almeno 600 volte**.  
 Questo condizione ci permette di escludere utenti e film che non sono stati valutati abbastanza e per cui **non sono presenti abbastanza dati per poter effettuare predizioni sufficientemente accurate**.  
-Filtriamo quindi il dataset delle valutazione in base alle condizione sopra citate:  
+Filtriamo quindi il data frame delle valutazione in base alle condizione sopra citate:  
 ```{r}
 grouped_users <- sqldf("SELECT userId, COUNT(movieId) as count_user FROM rating_dataset GROUP BY userId")
 grouped_movies <- sqldf("SELECT movieId, COUNT(userId) as count_movie FROM rating_dataset GROUP BY movieId")
@@ -71,7 +74,7 @@ rating_dataset <- sqldf(
 )
 ```
 
-### Analisi del dataset
+### Analisi dei dati
 
 Dopo un primo filtro, possiamo caricare i dati relativi agli utenti:
 ```{r}
@@ -86,17 +89,17 @@ users_dataset <- sqldf("
 ")
 ```
 
-Una volta rimossi dal dataset gli utenti che non hanno fatto recensito abbastanza film, aggiungiamo al data frame le seguenti colonne:  
+Una volta rimossi dal data frame gli utenti che non hanno fatto recensito abbastanza film, aggiungiamo le seguenti colonne:  
 - `mean`, contiene la media delle valutazione lasciate dall'utente.  
-- `weighted_mean`, contiene la media pesata con il timestamp delle valutazioni lasciate dall'utente.  
+- `weighted_mean`, contiene la media pesata usando i timestamp delle valutazioni lasciate dall'utente.  
 - `ratings_range`, contiene la differenza fra la prima valutazione e l'ultima valutazione lasciata dall'utente.  
 - `mean_diff`, contiene la differenza fra la media aritmetica e la media pesata delle valutazioni.  
 
 Gli ultimi due campi ci permetteranno di dimostrare se esiste una correlazione tra:  
 - la differenze fra le media aritmetica e la media pesata.  
 - l'arco temporale fra la prima e l'ultima valutazione.  
-In pratica, vogliamo verificare se in un intervallo temporale più ampio, la differenza fra la media aritmetica e quella pesata aumenta.
-Creiamo quindi le colonne ed aggiungiamole al dataset:
+In pratica, vogliamo verificare se in un intervallo temporale più ampio, la differenza fra la media aritmetica e quella pesata aumenta.  
+Creiamo quindi le colonne ed aggiungiamole al data frame:
 ```{r}
 users_dataset['mean'] <- replicate(nrow(users_dataset), 0)
 users_dataset['weigthed_mean'] <- replicate(nrow(users_dataset), 0)
@@ -105,7 +108,7 @@ users_dataset['mean_diff'] <- replicate(nrow(users_dataset), 0)
 ```
 
 Una volta aggiunti i campi, effettuiamo tutti i calcoli necessari per popolare i campi.  
-Per calcolare la media pesata, abbiamo bisogno di una funzione che mappi i timestamp in un intervallo più piccolo di quello esistente. La funzione `map_range`, dato un minimo ed un massimo, converte i valori nell'intervallo assegnandogli un valore fra `0.5` e `1.5`. Questo ci permette di assegnare un peso nullo, ovvero `1`, alle valutazione fatte a metà nell'arco temporale. Creiamo quindi la funzione:
+Per calcolare la media pesata, abbiamo bisogno di una funzione che mappi i timestamp in un intervallo più piccolo di quello esistente. La funzione `map_range`, dato un minimo ed un massimo, converte i valori nell'intervallo assegnandogli un valore fra `0.5` e `1.5`. Questo ci permette di assegnare un peso nullo, ovvero `1`, alle valutazione fatte a *"metà"* nell'arco temporale. Creiamo quindi la funzione:
 ```{r}
 map_range <- function(x, min_val, max_val, new_min = 0.5, new_max = 1.5) {
   y <- (x - min_val) * (new_max - new_min) / (max_val - min_val) + new_min
@@ -125,15 +128,17 @@ for (user_index in 1:nrow(users_dataset)) {
     single_user_dataset[, 'timestamp'], 
     function (x) map_range(x, single_user_first_rating, single_user_last_rating)
   )
-  users_dataset[user_index, 'mean'] <- mean(single_user_ratings)
-  users_dataset[user_index, 'weigthed_mean'] <- weighted.mean(single_user_ratings, single_user_weigths)
-  users_dataset[user_index, 'ratings_range'] <- abs(single_user_weight_mean - single_user_mean)
-  users_dataset[user_index, 'mean_diff'] <- single_user_last_rating - single_user_first_rating
+  single_user_mean <- mean(single_user_ratings)
+  single_user_weight_mean <- weighted.mean(single_user_ratings, single_user_weigths)
+  users_dataset[user_index, 'mean'] <- single_user_mean
+  users_dataset[user_index, 'weigthed_mean'] <- single_user_weight_mean
+  users_dataset[user_index, 'ratings_range'] <- single_user_last_rating - single_user_first_rating
+  users_dataset[user_index, 'mean_diff'] <- abs(single_user_weight_mean - single_user_mean)
 }
 ```
 
 Dopo aver effettuato tutti i calcoli, vediamo i risultati.
-Il primo grafico che vediamo è relativo alla frequenza delle valutazioni all'interno del dataset.
+Il primo grafico che vediamo è relativo alla frequenza delle valutazioni all'interno del data frame.
 ```{r}
 hist(
   rating_dataset[, 'rating'],
@@ -160,13 +165,12 @@ hist(
   users_dataset[, 'weigthed_mean'],
   breaks = 5,
   main = 'Average weigthed mean ratings', 
-  xlab = 'Mean ratings',
+  xlab = 'Weigthed mean ratings',
   col = '#D6604D',
   border = '#B2182B'
 )
 ```
 Osservando i due grafici, notiamo che i valori assegnati alla media pesata sono tendenzialmente più bassi.  
-
 Il terzo grafico ci mostra l'andamento fra la differenze fra le media aritmetica ed il range temporale in cui sono state lasciate le valutazione. Verifichiamo quindi se esiste la correlazione sopra citata:
 ```{r}
 plot(
@@ -183,9 +187,9 @@ Dal grafico, notiamo che i valori si concentrano principalmente sulla parte bass
 
 ### Creazione dei sistemi di raccomandazione
 
-Dopo aver ottenuto un dataset pulito, possiamo procedere alla creazione della matrice di utilità.  
+Dopo aver pulito ed analizzato i dati, possiamo procedere alla creazione della matrice di utilità.  
 Essendo il nostro dataset organizzato in una lista, è necessario effettuare una conversione.  
-Nel pacchetto reshape2 è inclusa la funzione `acast` che prendendo in input le liste di valori, la formula per creare righe / colonne e il nome della lista relativa valore da inserire nelle celle, ci restituisce una matrice.  
+Nel pacchetto `reshape2` è inclusa la funzione `acast` che prendendo in input le liste di valori, la formula per creare righe e colonne ed il nome della lista relativa al valore da inserire nelle celle, ci restituisce una matrice.  
 Nel nostro caso, `rating_dataset` rappresenta il dataset con tutte le righe, `userId~movieId`rappresenta la formula per ottenere rispettivamente nelle righe gli utenti e nelle colonne i film, il valore `rating` rappresenta il valore nelle celle.  
 Utilizziamola nel nostro caso:
 ```{r}
@@ -202,7 +206,7 @@ rating_matrix <- as(converted_matrix, "realRatingMatrix")
 - **Bootstrap**, prevede di creare diverse ripetizioni del dataset (sampling con ripetizione) e di selezionare casualmente il training e il test set in ogni ripetizione. In questo modo, ogni osservazione ha la stessa probabilità di essere selezionata per il training set o il test set in ogni ripetizione.   
 - **Cross Validation** (validazione incrociata), prevede di suddividere il dataset in k parti uguali, chiamate fold. Il modello viene poi addestrato su k-1 fold e testato sul fold rimanente. Questo processo viene ripetuto k volte, utilizzando un fold differente come test set ad ogni ripetizione. In questo modo, ogni osservazione viene utilizzata sia per il training che per il testing. Questa tecnica può essere utile per valutare il modello in modo più accurato, riducendo l'effetto della scelta casuale dei dati di training e testing.   
 
-Creiamo quindi i diversi schemi che utilizzeremo in sequenza:
+Creiamo quindi i diversi schemi di dati che utilizzeremo:
 ```{r}
 split_matrix <- evaluationScheme(
   data = rating_matrix, 
@@ -256,9 +260,9 @@ $$
 $$
 r'_{u,i} = \frac{r_{u,i} - \mu_u}{\sigma_u}
 $$
-La principale differenza sta nel calcolo: mentre la normalizzazione center calcola semplicemente la media delle valutazione e le sottrae al rating dell'oggetto $i$ relativo all'utente $u$, la normalizzazione z-score divide tutto per la deviazione standard.
+La principale differenza sta nel calcolo: mentre la normalizzazione `center` calcola semplicemente la media delle valutazione e le sottrae al rating dell'oggetto $i$ relativo all'utente $u$, la normalizzazione `z-score` divide tutto per la deviazione standard.
 
-Dopo aver elencato tutti i possibili parametri, generiamo i singoli modelli, assegnandoli ad una lista diversa in base al modo in cui i dati assegnati ad essi sono stati suddivisi:
+Generiamo quindi i singoli modelli, assegnandoli ad una lista diversa in base al modo in cui i dati assegnati ad essi sono stati suddivisi:
 ```{r}
 models_split_list <- list(
   "UBCF:Cosine:Center" = list(name="UBCF", data=split_matrix, params=list(method ="cosine", normalize="center")),
@@ -295,7 +299,7 @@ models_k_fold_list <- list(
 ```
 
 Creiamo una funzione per addestrare il sistema e valutarne gli errori sul test set.  
-Questa funzione, dato il training set, cerca di capire la media e vede, per tutti i ratings, la differenza fra il valore calcolato con i dati del training set ed il dato originale presente nel test set.
+Questa funzione, per tutti i ratings, ci restituisce la differenza media fra il valore calcolato con i dati del training set ed il dato originale presente nel test set.
 ```{r}
 trainModel <- function(settings) {
  model <- Recommender(getData(settings$data, "train"), settings$name, parameter = settings$params)
@@ -371,8 +375,9 @@ rownames(models_mean_error) <- c('Split method', 'Bootstrap method', 'Cross vali
 models_mean_error
 ```
 
-### Normalizzazione temporale
-All'interno di un sistema di raccomandazione, potremmo anche normalizzare secondo una funzione personalizzata. Come abbiamo visto prima, con l'utilizzo dei timestamp, possiamo ricavare una media pesata in cui diamo un peso minore alla valutazione meno recenti ed un peso maggiore alle valutazione più recenti.  
+### Predizione temporale
+All'interno di un sistema di raccomandazione, potremmo anche normalizzare le valutazione utilizzando una funzione personalizzata. Come abbiamo visto prima, con l'utilizzo dei timestamp, possiamo ricavare una media pesata in cui diamo un peso minore alla valutazione meno recenti ed un peso maggiore alle valutazione più recenti.  
+Possiamo dunque creare una funzione che normalizzi la matrice di utilità secondo una media pesata.  
 Affinché R possa creare un sistema personalizzato, occorre creare una funzione `normalize` personalizzata che chiameremo `weight_normalize`.  
 La funzione necessita di un matrice di timestamp, da usare per calcolare la media pesata:
 ```{r}
@@ -407,7 +412,7 @@ Dopo averla creata, applichiamola sulla matrice dei timestamp:
 timestamp_matrix <- timestamp_normalize(timestamp_matrix)
 ```
 
-A questo punto, possiamo creare la funzione `weight_normalize` che genera la media pesata e ritorna una matrice già normalizzata, quindi in cui ad ogni valore è già stata sottratta la media calcolata, subito utilizzabile:
+A questo punto, possiamo creare la funzione `weight_normalize` che genera la media pesata e ritorna una matrice già normalizzata, quindi in cui ad ogni valore è già stata sottratta la media calcolata:
 ```{r}
 weight_normalize <- function(x, y, row = TRUE) {
   n_rows = nrow(x)
@@ -583,7 +588,7 @@ rownames(weight_models_mean_error) <- c('Split method', 'Bootstrap method', 'Cro
 weight_models_mean_error
 ```
 
-### Binarizzazione
+### Predizione binaria
 Finora, abbiamo trattato solo sistemi di raccomandazione con valutazione reali, dove la valutazione vanno da `0.5` (voto minimo) a `5` (voto massimo). Adesso trattiamo sistemi di raccomandazione in cui le valutazioni sono **binarie**, cioè le valutazioni possono avere valore:  
 - `0`: valutazione negativa (l'utente non gradisce l'item)  
 - `1`: valutazione positiva (l'utente gradisce l'item)  
@@ -596,7 +601,7 @@ Il parametro `minRating` indica come devono essere convertiti i valori. Dato che
 - $\lt 3 \rightarrow 0$  
 - $\ge 3 \rightarrow 1$  
 
-Ripetiamo tutte le operazione precedenti utilizzando la matrice d'utilità ottenuta con la media pesata al posto della matrice originale:
+Ripetiamo tutte le operazione precedenti utilizzando la matrice d'utilità ottenuta con la binarizzazione:
 ```{r}
 binary_split_matrix <- evaluationScheme(
   data = binary_matrix, 
@@ -624,7 +629,7 @@ Generiamo i modelli binari. In questo caso, l'unico parametro che possiamo impos
 $$
 \text{Jaccard}(U,V) = \frac{|U \cap V|}{|U \cup V|}
 $$
-Dati due insiemi, $U$ e $V$, calcola il rapporto fra gli elementi in comune e quelli totali. Se questo valore supera una certa soglia, allora due elementi sono detti come simili.  
+Dati due insiemi, $U$ e $V$, calcola il rapporto fra gli elementi in comune e quelli totali. Se questo valore supera una certa soglia, allora due elementi sono detti come simili. Generalmente, la soglia è impostata a `0.5`.  
 Impostiamola dunque come parametro per tutti i modelli:
 ```{r}
 binary_models_split_list <- list(
@@ -772,3 +777,8 @@ plot(
   col = '#F4A582'
 )
 ```
+
+### Conclusioni
+Terminata questa analisi, possiamo vedere che la matrice popolata da valori reali ha un tasso d'errore accettabile poiché $\lt 1$.  
+La struttura pesata rimane comunque un ottima alternativa poiché il tasso d'errore medio è leggermente più alto rispetto ai valori della matrice originale.  
+Tuttavia, la predizione binaria ha portata a risultati poco accurati, visto che i valori TPR e FPR sono molto bassi.
