@@ -212,20 +212,20 @@ split_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "split", 
   train = 0.8, 
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 bootstrap_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "bootstrap",
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 k_fold_matrix <- evaluationScheme(
   data = rating_matrix, 
   method = "cross-validation",
   k = 8, 
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 ```
@@ -481,20 +481,20 @@ weight_split_matrix <- evaluationScheme(
   data = weighted_matrix, 
   method = "split", 
   train = 0.8, 
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 weight_bootstrap_matrix <- evaluationScheme(
   data = weighted_matrix, 
   method = "bootstrap",
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 weight_k_fold_matrix <- evaluationScheme(
   data = weighted_matrix, 
   method = "cross-validation",
   k = 8, 
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 ```
@@ -607,20 +607,20 @@ binary_split_matrix <- evaluationScheme(
   data = binary_matrix, 
   method = "split", 
   train = 0.8, 
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 binary_bootstrap_matrix <- evaluationScheme(
   data = binary_matrix, 
   method = "bootstrap",
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 binary_k_fold_matrix <- evaluationScheme(
   data = binary_matrix, 
   method = "cross-validation",
   k = 8, 
-  given = given, 
+  given = 240, 
   goodRating = 3
 )
 ```
