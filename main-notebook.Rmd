@@ -1,6 +1,10 @@
 ---
 title: "Sistemi di raccomandazione in R"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
 
 ### Introduzione
@@ -598,7 +602,7 @@ Per convertire i valori dal range $[0, 5]$ al range $(0, 1)$, dobbiamo utilizzar
 binary_matrix <- binarize(rating_matrix, minRating = 3)
 ```
 Il parametro `minRating` indica come devono essere convertiti i valori. Dato che esso è impostato a `3`, i valori saranno convertiti in questo modo:  
-- $\lt 3 \rightarrow 0$  
+- $> 3 \rightarrow 0$  
 - $\ge 3 \rightarrow 1$  
 
 Ripetiamo tutte le operazione precedenti utilizzando la matrice d'utilità ottenuta con la binarizzazione:
@@ -779,6 +783,6 @@ plot(
 ```
 
 ### Conclusioni
-Terminata questa analisi, possiamo vedere che la matrice popolata da valori reali ha un tasso d'errore accettabile poiché $\lt 1$.  
+Terminata questa analisi, possiamo vedere che la matrice popolata da valori reali ha un tasso d'errore accettabile poiché $< 1$.  
 La struttura pesata rimane comunque un ottima alternativa poiché il tasso d'errore medio è leggermente più alto rispetto ai valori della matrice originale.  
 Tuttavia, la predizione binaria ha portata a risultati poco accurati, visto che i valori TPR e FPR sono molto bassi.
